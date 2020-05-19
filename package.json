@@ -1,0 +1,53 @@
+{
+  "name": "coinselectsyscoin",
+  "version": "3.1.11",
+  "description": "A transaction creation library interfacing with coin selection for Syscoin.",
+  "keywords": [
+    "coinselect",
+    "coin",
+    "unspents",
+    "wallet",
+    "BIP32",
+    "management",
+    "utxo",
+    "transaction",
+    "fee",
+    "optimization",
+    "optimizing",
+    "bitcoin",
+    "syscoin"
+  ],
+  "homepage": "https://github.com/syscoin/syscointx-js",
+  "bugs": {
+    "url": "https://github.com/syscoin/syscointx-js/issues"
+  },
+  "license": "MIT",
+  "author": "Jagdeep Sidhu",
+  "files": [
+    "bn-extensions.js",
+    "index.js",
+    "bufferutils.js"
+  ],
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syscoin/syscointx-js.git"
+  },
+  "scripts": {
+    "coverage": "nyc --check-coverage --branches 100 --functions 100 tape test/*.js",
+    "standard": "standard",
+    "test": "npm run standard && npm run unit",
+    "unit": "tape test/*.js"
+  },
+  "devDependencies": {
+    "nyc": "^8.3.2",
+    "standard": "*",
+    "tape": "^4.5.1"
+  },
+  "dependencies": {
+    "bn.js": "^5.1.1",
+    "coinselectsyscoin": "^1.0.0",
+    "bitcoinjs-lib": "^5.1.7",
+    "varuint-bitcoin": "^1.1.2"
+  }
+}
