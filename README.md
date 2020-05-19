@@ -1,4 +1,4 @@
-# coinselectsyscoin
+# syscointx-js
 
 [![TRAVIS](https://secure.travis-ci.org/bitcoinjs/coinselect.png)](http://travis-ci.org/syscoin/coinselect)
 [![NPM](http://img.shields.io/npm/v/coinselect.svg)](https://www.npmjs.org/package/coinselect)
