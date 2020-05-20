@@ -107,9 +107,10 @@ module.exports = function createSyscoinTransaction (utxos, sysChangeAddress, out
     let psbt = new bitcoin.Psbt();
     // filter out asset utxo's for syscoin-only selection
     let utxos = utxos.filter(utxo => !utxo.assetInfo.assetGuid);
-    let { inputs, outputs, totalFeeExisting } = coinSelect.coinSelect(utxos, outputs, feeRate);
+    let inputs = [];
+    let { inputs, outputs, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate);
     // the accumulated fee is always returned for analysis
-    console.log(totalFeeExisting);
+    console.log(fee);
 
     // .inputs and .outputs will be undefined if no solution was found
     if (!inputs || !outputs) return null;
@@ -136,22 +137,14 @@ module.exports = function createSyscoinTransaction (utxos, sysChangeAddress, out
     })
     return psbt;
 }
-function notFoundInUtxoMap(mapUtxo, utxo) {
-    let key = string(utxo.txId) + string(utxo.vout);
-    if (key in mapUtxo) {
-        return true;
-    }
-    return false;
-}
 
 module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate) {
     let psbt = new bitcoin.Psbt();
     psbt.setVersion(txVersion);
-    let inputs = [];
     let utxoAssets = utxos.filter(utxo => utxo.assetInfo != null);
     let isNonAssetFunded = txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT;
-    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxoAssets, inputs, assetArray, feeRate, isNonAssetFunded);
+    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxoAssets, assetArray, feeRate, isNonAssetFunded);
     // .inputs and .outputs will be undefined if no solution was found
 
     if (!inputs || !outputs) return null;
@@ -165,11 +158,7 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
         value: dataAmount,
     };
     outputs.push(dataOutput);
-    let mapUtxo = [];
-    inputs.forEach(input => {
-        mapUtxo[string(input.txId) + string(input.vout)] = 1;
-    });
-
+    // get non-asset utxo's to try to fund gas
     utxos = utxoAssets.filter(utxo => !utxo.assetInfo);
     let { inputs, outputs, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate);
     // the accumulated fee is always returned for analysis
