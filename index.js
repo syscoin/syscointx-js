@@ -45,28 +45,28 @@ const SYSCOIN_TX_VERSION_ALLOCATION_SEND = 135;
 
 module.exports = function assetNew (assetOpts, utxos, assetArray, sysChangeAddress, outputs, feeRate) {
     let txVersion = SYSCOIN_TX_VERSION_ASSET_ACTIVATE;
-    let dataAmount = 150*COIN;
+    let dataAmount = new ext.BN(150*COIN);
     let dataBuffer = syscoinBufferUtils.SerializeAsset(assetOpts);
     return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate);
 }
 
 module.exports = function assetUpdate (assetOpts, utxos, assetArray, sysChangeAddress, outputs, feeRate) {
     let txVersion = SYSCOIN_TX_VERSION_ASSET_UPDATE;
-    let dataAmount = 0;
+    let dataAmount = ext.BN_ZERO;
     let dataBuffer = syscoinBufferUtils.SerializeAsset(assetOpts);
     return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate);
 }
 
 module.exports = function assetSend (utxos, assetArray, sysChangeAddress, outputs, feeRate) {
     let txVersion = SYSCOIN_TX_VERSION_ASSET_SEND;
-    let dataAmount = 0;
+    let dataAmount = ext.BN_ZERO;
     let dataBuffer = null;
     return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate);
 }
 
 module.exports = function assetAllocationSend (utxos, assetArray, sysChangeAddress, outputs, feeRate) {
     let txVersion = SYSCOIN_TX_VERSION_ALLOCATION_SEND;
-    let dataAmount = 0;
+    let dataAmount = ext.BN_ZERO;
     let dataBuffer = null;
     return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate);
 }
@@ -78,7 +78,7 @@ module.exports = function assetAllocationBurn (syscoinBurnToEthereum, utxos, ass
     } else {
         txVersion = SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN;
     }
-    let dataAmount = 0;
+    let dataAmount = ext.BN_ZERO;
     let dataBuffer = null;
     if(txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
         dataBuffer = syscoinBufferUtils.SerializeSyscoinBurnToEthereum(syscoinBurnToEthereum);
@@ -88,13 +88,13 @@ module.exports = function assetAllocationBurn (syscoinBurnToEthereum, utxos, ass
 
 module.exports = function assetAllocationMint (mintSyscoin, utxos, assetArray, sysChangeAddress, outputs, feeRate) {
     let txVersion = SYSCOIN_TX_VERSION_ALLOCATION_MINT;
-    let dataAmount = 0;
+    let dataAmount = ext.BN_ZERO;
     let dataBuffer = syscoinBufferUtils.SerializeMintSyscoin(mintSyscoin);
     return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate);
 }
 
 module.exports = function syscoinBurnToAssetAllocation (utxos, assetArray, sysChangeAddress, outputs, feeRate) {
-    if(!outputs || outputs.length <= 0 || !outputs[0].value) {
+    if(!outputs || outputs.length <= 0 || !outputs[0].value || outputs[0].isZero()) {
         return null;
     }
     let txVersion = SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION;
@@ -132,7 +132,7 @@ module.exports = function createSyscoinTransaction (utxos, sysChangeAddress, out
         }
         psbt.addOutput({
             address: output.address,
-            value: output.value,
+            value: output.value.toNumber(),
         });
     })
     return psbt;
@@ -155,7 +155,7 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
     const dataScript = bitcoin.payments.embed({ data: Buffer.concat(buffArr) });
     let dataOutput = {
         script: dataScript,
-        value: dataAmount,
+        value: dataAmount.toNumber(),
     };
     outputs.push(dataOutput);
     // get non-asset utxo's to try to fund gas
@@ -184,7 +184,7 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
         }
         psbt.addOutput({
             address: output.address,
-            value: output.value,
+            value: output.value.toNumber(),
         });
     });
     
