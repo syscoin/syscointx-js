@@ -143,16 +143,21 @@ function notFoundInUtxoMap(mapUtxo, utxo) {
     }
     return false;
 }
+
 module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate) {
     let psbt = new bitcoin.Psbt();
     psbt.setVersion(txVersion);
-    var inputs = [];
+    let inputs = [];
     let utxoAssets = utxos.filter(utxo => utxo.assetInfo != null);
-    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxoAssets, inputs, assetArray, feeRate);
+    let isNonAssetFunded = txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
+    txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT;
+    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxoAssets, inputs, assetArray, feeRate, isNonAssetFunded);
     // .inputs and .outputs will be undefined if no solution was found
+
     if (!inputs || !outputs) return null;
-    assetAllocationsBuffer = syscoinBufferUtils.SerializeAssetAllocations(assetAllocations);
-    var buffArr = [assetAllocationsBuffer, dataBuffer];
+    
+    let assetAllocationsBuffer = syscoinBufferUtils.SerializeAssetAllocations(assetAllocations);
+    let buffArr = [assetAllocationsBuffer, dataBuffer];
     // create and add data script for OP_RETURN
     const dataScript = bitcoin.payments.embed({ data: Buffer.concat(buffArr) });
     let dataOutput = {
@@ -160,18 +165,19 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
         value: dataAmount,
     };
     outputs.push(dataOutput);
+    let mapUtxo = [];
+    inputs.forEach(input => {
+        mapUtxo[string(input.txId) + string(input.vout)] = 1;
+    });
 
-    // from asset related utxos as they should be already used to fund assets already
-    let utxos = utxos.filter(utxo => !utxo.assetInfo);
-    let { inputs, outputs, fee, feeNeeded } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate);
+    utxos = utxoAssets.filter(utxo => !utxo.assetInfo);
+    let { inputs, outputs, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate);
     // the accumulated fee is always returned for analysis
     console.log(fee);
 
     // .inputs and .outputs will be undefined if no solution was found
     if (!inputs || !outputs) return null;
-
     inputs.forEach(input => {
-            mapUtxo[string(input.txId) + string(input.vout)] = 1;
             psbt.addInput({
                 hash: input.txId,
                 index: input.vout,
@@ -192,20 +198,6 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
             value: output.value,
         });
     });
-    // try again to fund gas with asset utxo's only
-    if(ext.gt(feeNeeded, ext.BN_ZERO)) {
-        // only use utxo which were not already used
-        let utxoNotAdded = utxoAssets.filter(utxo => notFoundInUtxoMap(mapUtxo, utxo));
-        let { inputs, outputs, fee, feeNeeded } = coinSelect.coinSelect(utxoNotAdded, inputs, outputs, feeRate);
-        // .inputs and .outputs will be undefined if no solution was found
-        if (!inputs || !outputs) return null;
-        // the accumulated fee is always returned for analysis
-        console.log(fee);
-        // if we still need more fee, we do not have enough funds to complete this transaction
-        if(ext.gt(feeNeeded, ext.BN_ZERO)) {
-            return null;
-        }
-    }
     
     return psbt;
 }
