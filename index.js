@@ -141,10 +141,9 @@ module.exports = function createSyscoinTransaction (utxos, sysChangeAddress, out
 module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, outputs, feeRate) {
     let psbt = new bitcoin.Psbt();
     psbt.setVersion(txVersion);
-    let utxoAssets = utxos.filter(utxo => utxo.assetInfo != null);
     let isNonAssetFunded = txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT;
-    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxoAssets, assetArray, feeRate, isNonAssetFunded);
+    let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetArray, feeRate, isNonAssetFunded);
     // .inputs and .outputs will be undefined if no solution was found
 
     if (!inputs || !outputs) return null;
@@ -158,8 +157,6 @@ module.exports = function createAssetTransaction (txVersion, utxos, dataBuffer, 
         value: dataAmount.toNumber(),
     };
     outputs.push(dataOutput);
-    // get non-asset utxo's to try to fund gas
-    utxos = utxoAssets.filter(utxo => !utxo.assetInfo);
     let { inputs, outputs, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate);
     // the accumulated fee is always returned for analysis
     console.log(fee);
