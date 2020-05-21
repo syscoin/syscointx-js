@@ -89,7 +89,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
           output.address = assetMap[output.assetInfo.assetGuid].changeAddress
         }
       } else {
-          output.address = sysChangeAddress
+        output.address = sysChangeAddress
       }
     }
     psbt.addOutput({
