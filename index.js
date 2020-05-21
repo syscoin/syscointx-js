@@ -2,38 +2,6 @@ const ext = require('./bn-extensions')
 const syscoinBufferUtils = require('./bufferutils.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
-/* onst sysChangeAddress = 'sdfsdf'
-const feeRate = 55 // satoshis per byte
-const assetObj1 = { assetGuid: 1234, changeAddress: 'sdfdsf', outputs: [{ value: 100, address: '23232' }] }
-const assetObj2 = { assetGuid: 12345, changeAddress: 'sdfdsf', outputs: [{ value: 100, address: '23232' }] }
-const assetObj3 = { assetGuid: 12346, changeAddress: 'sdfdsf', outputs: [{ value: 100, address: '23232' }] }
-const assetArray = [assetObj1, assetObj2, assetObj3]
-const txVersion = 131
- let utxos = [
-  ...,
-  {
-    txId: '...',
-    vout: 0,
-    ...,
-    value: 10000,
-    // For use with PSBT:
-    // not needed for coinSelect, but will be passed on to inputs later
-    nonWitnessUtxo: Buffer.from('...full raw hex of txId tx...', 'hex'),
-    // OR
-    // if your utxo is a segwit output, you can use witnessUtxo instead
-    witnessUtxo: {
-      script: Buffer.from('... scriptPubkey hex...', 'hex'),
-      value: 10000 // 0.0001 BTC and is the exact same as the value above
-    }
-  }
-]
-let systargets = [
-  ...,
-  {
-    address: '1EHNa6Q4Jz2uvNExL497mE43ikXhwF6kZm',
-    value: 0
-  }
-] */
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
 const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
@@ -76,12 +44,12 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
   return psbt
 }
 
-function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate) {
+function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   const psbt = new bitcoin.Psbt()
   psbt.setVersion(txVersion)
   const isNonAssetFunded = txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetArray, feeRate, isNonAssetFunded)
+  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded)
   // .inputs and .outputs will be undefined if no solution was found
 
   if (!inputs || !outputs) return null
@@ -116,7 +84,13 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
     if (!output.address) {
-      output.address = sysChangeAddress
+      if (output.assetInfo) {
+        if (output.assetInfo.assetGuid in assetMap) {
+          output.address = assetMap[output.assetInfo.assetGuid].changeAddress
+        }
+      } else {
+          output.address = sysChangeAddress
+      }
     }
     psbt.addOutput({
       address: output.address,
@@ -126,35 +100,35 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
 
   return psbt
 }
-function assetNew (assetOpts, utxos, assetArray, sysChangeAddress, feeRate) {
+function assetNew (assetOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new ext.BN(150 * COIN)
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetUpdate (assetOpts, utxos, assetArray, sysChangeAddress, feeRate) {
+function assetUpdate (assetOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_ASSET_UPDATE
   const dataAmount = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetSend (utxos, assetArray, sysChangeAddress, feeRate) {
+function assetSend (utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_ASSET_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationSend (utxos, assetArray, sysChangeAddress, feeRate) {
+function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetArray, sysChangeAddress, feeRate) {
+function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeAddress, feeRate) {
   let txVersion = 0
   if (syscoinBurnToEthereum && syscoinBurnToEthereum.ethAddress && syscoinBurnToEthereum.ethAddress.length > 0) {
     txVersion = SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
@@ -166,20 +140,20 @@ function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetArray, sysChang
   if (txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
     dataBuffer = syscoinBufferUtils.serializeSyscoinBurnToEthereum(syscoinBurnToEthereum)
   }
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationMint (mintSyscoin, utxos, assetArray, sysChangeAddress, feeRate) {
+function assetAllocationMint (mintSyscoin, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(mintSyscoin)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function syscoinBurnToAssetAllocation (utxos, assetArray, sysChangeAddress, dataAmount, feeRate) {
+function syscoinBurnToAssetAllocation (utxos, assetMap, sysChangeAddress, dataAmount, feeRate) {
   const txVersion = SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetArray, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
 module.exports = {
