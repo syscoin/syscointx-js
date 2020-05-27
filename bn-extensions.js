@@ -94,6 +94,10 @@ function neg (a) {
   if (!BN.isBN(a)) return false
   return a.neg()
 }
+function maskn (a) {
+  if (!BN.isBN(a)) return false
+  return a.maskn()
+}
 
 module.exports = {
   mul: mul,
@@ -110,6 +114,7 @@ module.exports = {
   shln: shln,
   shrn: shrn,
   neg: neg,
+  maskn: maskn,
   BN_ZERO: BN_ZERO,
   BN_ONE: BN_ONE
 }
