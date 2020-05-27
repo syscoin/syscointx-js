@@ -165,7 +165,6 @@ function serializeAsset (asset) {
   bufferWriter.writeUInt8(asset.prevupdateflags)
 
   putUint(bufferWriter, compressAmount(asset.balance))
-  putUint(bufferWriter, compressAmount(asset.totalsupply))
   putUint(bufferWriter, compressAmount(asset.maxsupply))
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAsset
   return buffer.slice(0, bufferWriter.offset)
@@ -203,9 +202,6 @@ function deserializeAsset (buffer) {
   asset.prevupdateflags = bufferReader.readUInt8()
   var valueSat = readUint(bufferReader)
   asset.balance = decompressAmount(valueSat)
-
-  valueSat = readUint(bufferReader)
-  asset.totalsupply = decompressAmount(valueSat)
 
   valueSat = readUint(bufferReader)
   asset.maxsupply = decompressAmount(valueSat)
