@@ -1,3 +1,4 @@
+const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const bitcoin = require('bitcoinjs-lib')
 const varuint = require('varuint-bitcoin')
@@ -15,8 +16,8 @@ function compressAmount (n) {
     return n
   }
   let e = 0
-  const tenBN = new ext.BN(10)
-  const nineBN = new ext.BN(9)
+  const tenBN = new BN(10)
+  const nineBN = new BN(9)
   while ((ext.eq(ext.mod(n, tenBN), ext.BN_ZERO)) && e < 9) {
     n = ext.div(n, tenBN)
     e++
@@ -25,11 +26,11 @@ function compressAmount (n) {
     const d = ext.mod(n, tenBN).toNumber()
     n = ext.div(n, tenBN)
     let retVal = ext.mul(n, nineBN)
-    retVal = ext.add(retVal, new ext.BN(d))
+    retVal = ext.add(retVal, new BN(d))
     retVal = ext.sub(retVal, ext.BN_ONE)
     retVal = ext.mul(retVal, tenBN)
     retVal = ext.add(retVal, ext.BN_ONE)
-    retVal = ext.add(retVal, new ext.BN(e))
+    retVal = ext.add(retVal, new BN(e))
     return retVal
   } else {
     let retVal = ext.sub(n, ext.BN_ONE)
@@ -45,20 +46,20 @@ function decompressAmount (x) {
   if (x.isZero()) {
     return x
   }
-  const tenBN = new ext.BN(10)
-  const nineBN = new ext.BN(9)
+  const tenBN = new BN(10)
+  const nineBN = new BN(9)
   x = ext.sub(x, ext.BN_ONE)
   // x = 10*(9*n + d - 1) + e
   let e = ext.mod(x, tenBN).toNumber()
   x = ext.div(x, tenBN)
-  let n = new ext.BN(0)
+  let n = new BN(0)
   if (ext.lt(e, nineBN)) {
     // x = 9*n + d - 1
     const d = ext.add(ext.mod(x, nineBN), ext.BN_ONE).toNumber()
     x = ext.div(x, nineBN)
     // x = n
     const retVal = ext.mul(x, tenBN)
-    n = ext.add(retVal, new ext.BN(d))
+    n = ext.add(retVal, new BN(d))
   } else {
     n = ext.add(x, ext.BN_ONE)
   }
@@ -72,12 +73,12 @@ function decompressAmount (x) {
 function putUint (bufferWriter, n) {
   const tmp = []
   let len = 0
-  const byteMask = new ext.BN(0x7F)
-  const sevenBN = new ext.BN(7)
+  const byteMask = new BN(0x7F)
+  const sevenBN = new BN(7)
   while (true) {
     let mask = ext.BN_ZERO
     if (len > 0) {
-      mask = new ext.BN(0x80)
+      mask = new BN(0x80)
     }
     tmp[len] = ext.or(ext.and(n, byteMask), mask).toNumber()
     if (ext.lte(n, byteMask)) {
@@ -93,10 +94,10 @@ function putUint (bufferWriter, n) {
 
 function readUint (bufferReader) {
   let n = ext.BN_ZERO
-  const sevenBN = new ext.BN(7)
+  const sevenBN = new BN(7)
   while (true) {
     const chData = bufferReader.readUInt8()
-    n = ext.or(ext.shln(n, sevenBN), new ext.BN(chData & 0x7F))
+    n = ext.or(ext.shln(n, sevenBN), new BN(chData & 0x7F))
     if (chData & 0x80) {
       n = ext.add(n, ext.BN_ONE)
     } else {
@@ -230,8 +231,8 @@ function serializeMintSyscoin (mintSyscoin) {
   const buffer = Buffer.allocUnsafe(byteLengthMintSyscoin(mintSyscoin))
   const bufferWriter = new bitcoin.BufferWriter(buffer, 0)
 
-  putUint(bufferWriter, new ext.BN(mintSyscoin.bridgetransferid))
-  putUint(bufferWriter, new ext.BN(mintSyscoin.blocknumber))
+  putUint(bufferWriter, new BN(mintSyscoin.bridgetransferid))
+  putUint(bufferWriter, new BN(mintSyscoin.blocknumber))
   bufferWriter.writeVarSlice(mintSyscoin.txvalue)
   bufferWriter.writeVarSlice(mintSyscoin.txparentnodes)
   bufferWriter.writeVarSlice(mintSyscoin.txroot)

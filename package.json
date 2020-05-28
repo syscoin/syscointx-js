@@ -42,12 +42,12 @@
   "devDependencies": {
     "nyc": "^8.3.2",
     "standard": "*",
-    "tape": "^4.5.1"
+    "tape": "^4.13.3"
   },
   "dependencies": {
-    "bn.js": "^5.1.1",
-    "coinselectsyscoin": "^1.0.0",
     "bitcoinjs-lib": "^5.1.7",
+    "bn.js": "^5.1.2",
+    "coinselectsyscoin": "^1.0.0",
     "varuint-bitcoin": "^1.1.2"
   }
 }

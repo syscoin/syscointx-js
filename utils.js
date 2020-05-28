@@ -1,4 +1,4 @@
-var ext = require('./bn-extensions')
+var BN = require('bn.js')
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
 const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
@@ -13,7 +13,7 @@ function sanitizeBlockbookUTXOs (utxos) {
   utxos.forEach(utxo => {
     const newUtxo = { txId: utxo.txid, vout: utxo.vout, witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
-      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new ext.BN(utxo.assetInfo.value) }
+      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
     sanitizedUtxos.push(newUtxo)
   })
@@ -23,7 +23,7 @@ function sanitizeBlockbookUTXOs (utxos) {
 }
 
 function generateAssetGuid (txid) {
-  let bigNum = new ext.BN('0x' + txid)
+  let bigNum = new BN('0x' + txid)
   // clear bits 33 and up to keep low 32 bits
   bigNum = bigNum.maskn(32)
   return bigNum.toNumber()
