@@ -112,7 +112,7 @@ function byteLengthAsset (asset) {
   len += varuint.encodingLength(asset.pubdata.length) + asset.pubdata.length
   len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
   len += 1 // updateflags
-  len += varuint.encodingLength(asset.prevcontract.length) + asset.pevcontract.length
+  len += varuint.encodingLength(asset.prevcontract.length) + asset.prevcontract.length
   len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
   len += 1 // prevupdateflags
   len += 8 // balance

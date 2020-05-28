@@ -14,7 +14,7 @@ fixtures.forEach(function (f) {
       const psbt = syscointx.syscoinBurnToAssetAllocation(utxos, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
       txOutputs = psbt.txOutputs()
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-      const psbt = syscointx.assetNew(f.assetOpts, utxos, f.sysChangeAddress, f.feeRate)
+      const psbt = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs()
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
       const psbt = syscointx.assetUpdate(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)

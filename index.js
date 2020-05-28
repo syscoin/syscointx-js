@@ -118,10 +118,10 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
 function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new BN(150 * utils.COIN)
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata
+  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
+  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
+  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
+  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
   const assetMap = new Map([
@@ -133,10 +133,10 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
 function assetUpdate (assetOpts, assetOptsOptional, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_UPDATE
   const dataAmount = ext.BN_ZERO
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata
+  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
+  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
+  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
+  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
