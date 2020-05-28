@@ -47,18 +47,19 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   let buffArr = [assetAllocationsBuffer, dataBuffer]
   // create and add data script for OP_RETURN
-  let dataScript = bitcoin.payments.embed({ data: buffArr })
+  let dataScript = bitcoin.payments.embed({ data: buffArr }).output
   const dataOutput = {
-    script: dataScript.output,
+    address: '',
+    script: dataScript,
     value: dataAmount
   }
   outputs.push(dataOutput)
-  const { inputsRet, outputsRet, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
-  inputs = inputsRet
-  outputs = outputsRet
 
+  const res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
+  inputs = res.inputs
+  outputs = res.outputs
   if (!inputs || !outputs) return null
-  
+
   if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
     const newAllocation = new Map()
     const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
@@ -70,12 +71,10 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
         break
       }
     }
-    console.log('assetAllocationsBuffer length before ' + assetAllocationsBuffer.length + ' dataBuffer length before ' + dataBuffer.length)
     assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(newAllocation)
     buffArr = [assetAllocationsBuffer, dataBuffer]
-    console.log('assetAllocationsBuffer length after ' + assetAllocationsBuffer.length + ' dataBuffer length after ' + dataBuffer.length)
     // update script with new guid
-    dataScript = bitcoin.payments.embed({ data: Buffer.concat(buffArr) })
+    dataScript = bitcoin.payments.embed({ data: buffArr }).output
     // update output with new data output with new guid
     outputs.forEach(output => {
       if (output.script) {
@@ -85,7 +84,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   }
 
   // the accumulated fee is always returned for analysis
-  console.log(fee)
+  console.log('fee ' + res.fee)
 
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) return null

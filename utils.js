@@ -11,7 +11,7 @@ const COIN = 100000000
 function sanitizeBlockbookUTXOs (utxos) {
   const sanitizedUtxos = []
   utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txid, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: new BN(utxo.value) } }
+    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
@@ -21,7 +21,7 @@ function sanitizeBlockbookUTXOs (utxos) {
 }
 
 function generateAssetGuid (txid) {
-  let bigNum = new BN('0x' + txid)
+  let bigNum = new BN(txid, 16)
   // clear bits 33 and up to keep low 32 bits
   bigNum = bigNum.maskn(32)
   return bigNum.toNumber()
