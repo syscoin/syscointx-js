@@ -11,7 +11,7 @@ const COIN = 100000000
 function sanitizeBlockbookUTXOs (utxos) {
   const sanitizedUtxos = []
   utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txid, vout: utxo.vout, witnessUtxo: { script: utxo.script, value: utxo.value } }
+    const newUtxo = { txId: utxo.txid, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: new BN(utxo.value) } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
