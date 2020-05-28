@@ -60,6 +60,11 @@ function lt (a, b) {
   return a.lt(b)
 }
 
+function lte (a, b) {
+  if (!BN.isBN(a) || !BN.isBN(b)) return false
+  return a.lte(b)
+}
+
 function gt (a, b) {
   if (!BN.isBN(a) || !BN.isBN(b)) return false
   return a.gt(b)
@@ -81,12 +86,12 @@ function and (a, b) {
 }
 
 function shln (a, b) {
-  if (!BN.isBN(a) || !BN.isBN(b)) return false
+  if (!BN.isBN(a) || BN.isBN(b)) return false
   return a.shln(b)
 }
 
 function shrn (a, b) {
-  if (!BN.isBN(a) || !BN.isBN(b)) return false
+  if (!BN.isBN(a) || BN.isBN(b)) return false
   return a.shrn(b)
 }
 
@@ -108,6 +113,7 @@ module.exports = {
   isZero: isZero,
   eq: eq,
   lt: lt,
+  lte: lte,
   gt: gt,
   or: or,
   and: and,

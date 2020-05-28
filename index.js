@@ -1,7 +1,7 @@
 var BN = require('bn.js')
 const ext = require('./bn-extensions')
 const utils = require('./utils')
-const syscoinBufferUtils = require('./bufferutils.js')
+const syscoinBufferUtils = require('./bufferutilsassets.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate) {
@@ -47,16 +47,18 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   let buffArr = [assetAllocationsBuffer, dataBuffer]
   // create and add data script for OP_RETURN
-  let dataScript = bitcoin.payments.embed({ data: Buffer.concat(buffArr) })
+  let dataScript = bitcoin.payments.embed({ data: buffArr })
   const dataOutput = {
-    script: dataScript,
-    value: dataAmount.toNumber()
+    script: dataScript.output,
+    value: dataAmount
   }
   outputs.push(dataOutput)
   const { inputsRet, outputsRet, fee } = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
   inputs = inputsRet
   outputs = outputsRet
 
+  if (!inputs || !outputs) return null
+  
   if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
     const newAllocation = new Map()
     const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
@@ -118,14 +120,14 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
 function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new BN(150 * utils.COIN)
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
+  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || Buffer.from('')
+  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
+  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
+  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
   const assetMap = new Map([
-    [0, { changeAddress: sysChangeAddress, outputs: [{ value: new ext.BN_ZERO(), address: sysChangeAddress }] }]
+    [0, { changeAddress: sysChangeAddress, outputs: [{ value: ext.BN_ZERO, address: sysChangeAddress }] }]
   ])
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

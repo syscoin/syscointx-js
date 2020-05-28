@@ -17,9 +17,7 @@ function sanitizeBlockbookUTXOs (utxos) {
     }
     sanitizedUtxos.push(newUtxo)
   })
-  return {
-    utxos: sanitizedUtxos
-  }
+  return sanitizedUtxos
 }
 
 function generateAssetGuid (txid) {
