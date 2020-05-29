@@ -49,7 +49,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   // create and add data script for OP_RETURN
   let dataScript = bitcoin.payments.embed({ data: buffArr }).output
   const dataOutput = {
-    address: '',
     script: dataScript,
     value: dataAmount
   }
@@ -113,7 +112,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       value: output.value.toNumber()
     })
   })
-
   return psbt
 }
 function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRate) {

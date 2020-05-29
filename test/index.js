@@ -9,28 +9,28 @@ fixtures.forEach(function (f) {
     var txOutputs = []
     if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       const psbt = syscointx.assetAllocationBurn(false, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
       const psbt = syscointx.syscoinBurnToAssetAllocation(utxos, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
       const psbt = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
       const psbt = syscointx.assetUpdate(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
       const psbt = syscointx.assetSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
       const psbt = syscointx.assetAllocationMint(f.mintSyscoin, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
       const psbt = syscointx.assetAllocationBurn(true, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
       const psbt = syscointx.assetAllocationSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs()
+      txOutputs = psbt.txOutputs
     }
 
     txOutputs.forEach(output => {
