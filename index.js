@@ -42,12 +42,11 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded)
   // .inputs and .outputs will be undefined if no solution was found
-
   if (!inputs || !outputs) return null
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   let buffArr = [assetAllocationsBuffer, dataBuffer]
   // create and add data script for OP_RETURN
-  let dataScript = bitcoin.payments.embed({ data: buffArr }).output
+  let dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
   const dataOutput = {
     script: dataScript,
     value: dataAmount
@@ -58,22 +57,20 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   inputs = res.inputs
   outputs = res.outputs
   if (!inputs || !outputs) return null
-
   if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    const newAllocation = new Map()
     const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
-    for (var guid in assetAllocations) {
-      if (guid in assetAllocations) {
-        const allocation = assetAllocations[guid]
-        newAllocation.set(deterministicGuid, [{ index: allocation.index, value: allocation.value }])
-        // only expect one allocation for a new asset
-        break
-      }
-    }
-    assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(newAllocation)
+    // delete old asset guid and create copy of new one
+    const oldAssetAllocation = assetAllocations.get(0)
+    assetAllocations.set(deterministicGuid, [])
+    const assetAllocation = assetAllocations.get(deterministicGuid)
+    assetAllocation.push({ n: JSON.parse(JSON.stringify(oldAssetAllocation[0].n)), value: new BN(oldAssetAllocation[0].value) })
+    assetAllocations.delete(0)
+
+    assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
     buffArr = [assetAllocationsBuffer, dataBuffer]
     // update script with new guid
-    dataScript = bitcoin.payments.embed({ data: buffArr }).output
+    dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
+
     // update output with new data output with new guid
     outputs.forEach(output => {
       if (output.script) {

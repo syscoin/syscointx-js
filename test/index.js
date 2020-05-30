@@ -36,7 +36,7 @@ fixtures.forEach(function (f) {
     txOutputs.forEach(output => {
       // find opreturn
       if (output.script[0] === 0x6a) {
-        t.same(output.script, f.expected.script)
+        t.same(output.script.toString('hex'), f.expected.script.toString())
       }
     })
     t.end()

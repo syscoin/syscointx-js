@@ -122,13 +122,10 @@ function byteLengthAsset (asset) {
 function byteLengthAssetAllocation (assetAllocations) {
   let len = 0
   len += varuint.encodingLength(assetAllocations.size)
-  for (var guid in assetAllocations) {
-    if (guid in assetAllocations) {
-      const allocation = assetAllocations[guid]
-      len += 4 // 4 byte uint32 asset guid
-      len += varuint.encodingLength(allocation.length)
-      len += 12 * allocation.length // 4 bytes for n, 8 bytes for value
-    }
+  for (const assetAllocation of assetAllocations.values()) {
+    len += 4 // 4 byte uint32 asset guid
+    len += varuint.encodingLength(assetAllocation.length)
+    len += 12 * assetAllocation.length // 4 bytes for n, 8 bytes for value
   }
   return len
 }
@@ -169,18 +166,20 @@ function serializeAsset (asset) {
 }
 function deserializeAssetAllocations (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
-  const assetAllocations = [] // TODO ts this
+  const assetAllocations = new Map() // TODO ts this
   const numAllocations = bufferReader.readVarInt()
   for (var i = 0; i < numAllocations; i++) {
     const assetGuid = bufferReader.readUInt32()
-    assetAllocations[assetGuid] = []
     const numOutputs = bufferReader.readVarInt()
+    if (!assetAllocations.has(assetGuid)) {
+      assetAllocations.set(assetGuid, [])
+    }
+    const assetAllocation = assetAllocations.get(assetGuid)
     for (var j = 0; j < numOutputs; j++) {
-      const allocation = {}
-      allocation.index = bufferReader.readUInt32()
+      const n = bufferReader.readUInt32()
       const valueSat = readUint(bufferReader)
-      allocation.value = decompressAmount(valueSat)
-      assetAllocations[assetGuid].push(allocation)
+      const value = decompressAmount(valueSat)
+      assetAllocation.push({ n: n, value: value })
     }
   }
   return assetAllocations
@@ -209,16 +208,14 @@ function deserializeAsset (buffer) {
 function serializeAssetAllocations (assetAllocations) {
   const buffer = Buffer.allocUnsafe(byteLengthAssetAllocation(assetAllocations))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-
   bufferWriter.writeVarInt(assetAllocations.size)
-  for (var guid in assetAllocations) {
-    if (guid in assetAllocations) {
-      const allocation = assetAllocations[guid]
-      bufferWriter.writeUInt32(guid)
-      bufferWriter.writeVarInt(allocation.length)
-      bufferWriter.writeUInt32(allocation.index)
-      putUint(bufferWriter, compressAmount(allocation.value))
-    }
+  for (const [assetGuid, assetAllocation] of assetAllocations.entries()) {
+    bufferWriter.writeUInt32(assetGuid)
+    bufferWriter.writeVarInt(assetAllocation.length)
+    assetAllocation.forEach(output => {
+      bufferWriter.writeVarInt(output.n)
+      putUint(bufferWriter, compressAmount(output.value))
+    })
   }
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAssetAllocation
   return buffer.slice(0, bufferWriter.offset)
