@@ -47,6 +47,7 @@
     "tape": "^4.13.3"
   },
   "dependencies": {
+    "bitcoin-ops": "^1.4.1",
     "bitcoinjs-lib": "^5.1.9",
     "bn.js": "^5.1.2",
     "coinselectsyscoin": "^1.0.1",

@@ -164,8 +164,8 @@ function serializeAsset (asset) {
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAsset
   return buffer.slice(0, bufferWriter.offset)
 }
-function deserializeAssetAllocations (buffer) {
-  const bufferReader = new bufferUtils.BufferReader(buffer)
+function deserializeAssetAllocations (buffer, bufferReaderIn) {
+  const bufferReader = bufferReaderIn || new bufferUtils.BufferReader(buffer)
   const assetAllocations = new Map() // TODO ts this
   const numAllocations = bufferReader.readVarInt()
   for (var i = 0; i < numAllocations; i++) {
@@ -176,7 +176,7 @@ function deserializeAssetAllocations (buffer) {
     }
     const assetAllocation = assetAllocations.get(assetGuid)
     for (var j = 0; j < numOutputs; j++) {
-      const n = bufferReader.readUInt32()
+      const n = bufferReader.readVarInt()
       const valueSat = readUint(bufferReader)
       const value = decompressAmount(valueSat)
       assetAllocation.push({ n: n, value: value })
@@ -188,7 +188,7 @@ function deserializeAsset (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const asset = {} // TODO ts this
 
-  asset.allocation = deserializeAssetAllocations(bufferReader)
+  asset.allocation = deserializeAssetAllocations(null, bufferReader)
   asset.precision = bufferReader.readUInt8()
   asset.contract = bufferReader.readVarSlice()
   asset.pubdata = bufferReader.readVarSlice()
@@ -244,7 +244,7 @@ function deserializeMintSyscoin (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const mintSyscoin = {} // TODO ts this
 
-  mintSyscoin.allocation = deserializeAssetAllocations(bufferReader)
+  mintSyscoin.allocation = deserializeAssetAllocations(null, bufferReader)
   mintSyscoin.bridgetransferid = readUint(bufferReader).toNumber()
   mintSyscoin.blocknumber = readUint(bufferReader).toNumber()
   mintSyscoin.txvalue = bufferReader.readVarSlice()
@@ -270,7 +270,7 @@ function deserializeSyscoinBurnToEthereum (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const syscoinBurnToEthereum = {} // TODO ts this
 
-  syscoinBurnToEthereum.allocation = deserializeAssetAllocations(bufferReader)
+  syscoinBurnToEthereum.allocation = deserializeAssetAllocations(null, bufferReader)
   syscoinBurnToEthereum.ethaddress = bufferReader.readVarSlice()
   return syscoinBurnToEthereum
 }

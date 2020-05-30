@@ -2,6 +2,25 @@ var syscointx = require('..')
 var fixtures = require('./fixtures')
 var tape = require('tape')
 var utils = require('../utils')
+const bitcoin = require('bitcoinjs-lib')
+const bitcoinops = require('bitcoin-ops')
+const syscoinBufferUtils = require('../bufferutilsassets.js')
+
+function compareMaps (map1, map2) {
+  var testVal
+  if (map1.size !== map2.size) {
+    return false
+  }
+  for (var [key, val] of map1) {
+    testVal = map2.get(key)
+    // in cases of an undefined value, make sure the key
+    // actually exists on the object so there are no false positives
+    if (JSON.stringify(testVal) !== JSON.stringify(val) || (testVal === undefined && !map2.has(key))) {
+      return false
+    }
+  }
+  return true
+}
 
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
@@ -35,8 +54,12 @@ fixtures.forEach(function (f) {
 
     txOutputs.forEach(output => {
       // find opreturn
-      if (output.script[0] === 0x6a) {
+      const chunks = bitcoin.script.decompile(output.script)
+      if (chunks[0] === bitcoinops.OP_RETURN) {
         t.same(output.script.toString('hex'), f.expected.script.toString())
+        const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
+        t.same(asset, f.expected.asset)
+        t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
       }
     })
     t.end()

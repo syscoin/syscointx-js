@@ -12,7 +12,22 @@ module.exports = [{
   assetOptsOptional: { contract: Buffer.from(''), pubdata: Buffer.from('{"description":"publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   expected: {
-    script: Buffer.from('6a3301f15ec65d01000008001d7b226465736372697074696f6e223a227075626c696376616c7565227d034341541f00001f648668')
+    script: Buffer.from('6a3301f15ec65d01000008001d7b226465736372697074696f6e223a227075626c696376616c7565227d034341541f00001f648668'),
+    asset: {
+      allocation: new Map([
+        [1573281521, [{ n: 0, value: new BN(0) }]]
+      ]),
+      precision: 8,
+      symbol: Buffer.from('CAT'),
+      updateflags: 31,
+      prevupdateflags: 31,
+      balance: new BN(10000000000),
+      maxsupply: new BN(100000000000),
+      contract: Buffer.from(''),
+      pubdata: Buffer.from('{"description":"publicvalue"}'),
+      prevcontract: Buffer.from(''),
+      prevpubdata: Buffer.from('')
+    }
   }
 }
 ]
