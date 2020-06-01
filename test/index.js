@@ -35,9 +35,29 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
       const psbt = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs
+      txOutputs.forEach(output => {
+        // find opreturn
+        const chunks = bitcoin.script.decompile(output.script)
+        if (chunks[0] === bitcoinops.OP_RETURN) {
+          t.same(output.script, f.expected.script)
+          const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
+          t.same(asset, f.expected.asset)
+          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+        }
+      })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
-      const psbt = syscointx.assetUpdate(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      const psbt = syscointx.assetUpdate(f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs
+      txOutputs.forEach(output => {
+        // find opreturn
+        const chunks = bitcoin.script.decompile(output.script)
+        if (chunks[0] === bitcoinops.OP_RETURN) {
+          t.same(output.script, f.expected.script)
+          const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
+          t.same(asset, f.expected.asset)
+          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+        }
+      })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
       const psbt = syscointx.assetSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs
@@ -52,16 +72,6 @@ fixtures.forEach(function (f) {
       txOutputs = psbt.txOutputs
     }
 
-    txOutputs.forEach(output => {
-      // find opreturn
-      const chunks = bitcoin.script.decompile(output.script)
-      if (chunks[0] === bitcoinops.OP_RETURN) {
-        t.same(output.script.toString('hex'), f.expected.script.toString())
-        const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
-        t.same(asset, f.expected.asset)
-        t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
-      }
-    })
     t.end()
   })
 })

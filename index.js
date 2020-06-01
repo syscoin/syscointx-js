@@ -96,8 +96,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     // an output address/script for
     if (!output.address) {
       if (output.assetInfo) {
-        if (output.assetInfo.assetGuid in assetMap) {
-          output.address = assetMap[output.assetInfo.assetGuid].changeAddress
+        if (assetMap.has(output.assetInfo.assetGuid)) {
+          output.address = assetMap.get(output.assetInfo.assetGuid).changeAddress
         }
       } else {
         output.address = sysChangeAddress
@@ -118,6 +118,7 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
   assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
   assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
   assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
+  assetOpts.totalsupply = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
   const assetMap = new Map([
@@ -129,10 +130,17 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
 function assetUpdate (assetOpts, assetOptsOptional, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_UPDATE
   const dataAmount = ext.BN_ZERO
+  assetOpts.balance = assetOpts.balance || assetOptsOptional.balance || ext.BN_ZERO
   assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
   assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
   assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
   assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
+  assetOpts.updateflags = assetOpts.updateflags || assetOptsOptional.updateflags || 31
+  assetOpts.prevupdateflags = assetOpts.prevupdateflags || assetOptsOptional.prevupdateflags || 31
+  // these are inited to 0 they are included on wire as empty, also used to ser/der into the asset db in core
+  assetOpts.totalsupply = ext.BN_ZERO
+  assetOpts.maxsupply = ext.BN_ZERO
+  assetOpts.symbol = Buffer.from('')
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

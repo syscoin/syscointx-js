@@ -201,7 +201,7 @@ function deserializeAsset (buffer) {
   var valueSat = readUint(bufferReader)
   asset.balance = decompressAmount(valueSat)
 
-  var valueSat = readUint(bufferReader)
+  valueSat = readUint(bufferReader)
   asset.totalsupply = decompressAmount(valueSat)
 
   valueSat = readUint(bufferReader)
