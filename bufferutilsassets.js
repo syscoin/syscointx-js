@@ -114,7 +114,7 @@ function byteLengthAsset (asset) {
   len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
   len += 1 // prevupdateflags
   len += 8 // balance
-  len += 8 // total supply
+  len += 1 // total supply (should be 1 for wire always)
   len += 8 // max supply
   return len
 }
@@ -160,6 +160,7 @@ function serializeAsset (asset) {
   bufferWriter.writeVarSlice(asset.prevpubdata)
   bufferWriter.writeUInt8(asset.prevupdateflags)
   putUint(bufferWriter, compressAmount(asset.balance))
+  putUint(bufferWriter, compressAmount(asset.totalsupply))
   putUint(bufferWriter, compressAmount(asset.maxsupply))
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAsset
   return buffer.slice(0, bufferWriter.offset)
@@ -199,6 +200,9 @@ function deserializeAsset (buffer) {
   asset.prevupdateflags = bufferReader.readUInt8()
   var valueSat = readUint(bufferReader)
   asset.balance = decompressAmount(valueSat)
+
+  var valueSat = readUint(bufferReader)
+  asset.totalsupply = decompressAmount(valueSat)
 
   valueSat = readUint(bufferReader)
   asset.maxsupply = decompressAmount(valueSat)
