@@ -40,12 +40,17 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   psbt.setVersion(txVersion)
   const isNonAssetFunded = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
-  const isAsset = txVersion == utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion == utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion == utils.SYSCOIN_TX_VERSION_ASSET_SEND;
+  const isAsset = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_SEND
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded, isAsset)
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) return null
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-  let buffArr = [assetAllocationsBuffer, dataBuffer]
+  let buffArr
+  if (dataBuffer) {
+    buffArr = [assetAllocationsBuffer, dataBuffer]
+  } else {
+    buffArr = [assetAllocationsBuffer]
+  }
   // create and add data script for OP_RETURN
   let dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
   const dataOutput = {

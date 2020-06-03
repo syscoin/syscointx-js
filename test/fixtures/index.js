@@ -64,5 +64,26 @@ module.exports = [{
       maxsupply: new BN(0)
     }
   }
+},
+{
+  description: 'send asset',
+  version: utils.SYSCOIN_TX_VERSION_ASSET_SEND,
+  feeRate: new BN(10),
+  utxos: [
+    { txId: 'befed752e1444b66fd91dd121f772d0f2f081c579f04b419eb18960dcd55e84f', vout: 2, script: Buffer.from('0014fb1a61908e16c8c5ad306b6d8ef11a6cc4f91ff5', 'hex'), value: 84900000000 },
+    { txId: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, script: Buffer.from('001462621943decf05bd265f6c352db0e42f73a60f68', 'hex'), value: 99999593, assetInfo: { assetGuid: 1635229536, value: new BN(0) } }
+  ],
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1000000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }, { value: new BN(0), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+  ]),
+  expected: {
+    script: Buffer.from('6a0a01609f776102000a0100', 'hex'),
+    asset: {
+      allocation: new Map([
+        [1635229536, [{ n: 0, value: new BN(1000000000) }, { n: 1, value: new BN(0) }]]
+      ])
+    }
+  }
 }
 ]

@@ -1,6 +1,6 @@
 {
-  "name": "coinselectsyscoin",
-  "version": "3.1.11",
+  "name": "syscointx-js",
+  "version": "1.0.0",
   "description": "A transaction creation library interfacing with coin selection for Syscoin.",
   "keywords": [
     "coinselect",
@@ -50,7 +50,7 @@
     "bitcoin-ops": "^1.4.1",
     "bitcoinjs-lib": "^5.1.9",
     "bn.js": "^5.1.2",
-    "coinselectsyscoin": "^1.0.1",
+    "coinselectsyscoin": "^1.0.2",
     "typeforce": "^1.18.0",
     "varuint-bitcoin": "^1.1.2"
   }
