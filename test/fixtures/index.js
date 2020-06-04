@@ -85,5 +85,26 @@ module.exports = [{
       ])
     }
   }
+},
+{
+  description: 'send asset allocation',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  feeRate: new BN(10),
+  utxos: [
+    { txId: 'c6e7702f1ab817bacf81e5678ba89e0b43a8a7b6f56c4c055aa8aeda87197a62', vout: 0, script: Buffer.from('0014712a0433b3be8c2860db2d313c44fa1967542780', 'hex'), value: 980, assetInfo: { assetGuid: 1635229536, value: new BN(1000000000) } },
+    { txId: '2cf903537c6c161a1c65d940758b63efd4706fc8f78eb21d252612407e59e865', vout: 0, script: Buffer.from('0014ab0ed68aa74cc422d69e4d675eb029ab93211c4c', 'hex'), value: 100000000 }
+  ],
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+  ]),
+  expected: {
+    script: Buffer.from('6a0a01609f776102003b0127', 'hex'),
+    asset: {
+      allocation: new Map([
+        [1635229536, [{ n: 0, value: new BN(600000000) }, { n: 1, value: new BN(400000000) }]]
+      ])
+    }
+  }
 }
 ]

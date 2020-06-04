@@ -79,6 +79,15 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
       const psbt = syscointx.assetAllocationSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs
+      txOutputs.forEach(output => {
+        // find opreturn
+        const chunks = bitcoin.script.decompile(output.script)
+        if (chunks[0] === bitcoinops.OP_RETURN) {
+          t.same(output.script, f.expected.script)
+          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+        }
+      })
     }
 
     t.end()
