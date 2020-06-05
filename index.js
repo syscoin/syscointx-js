@@ -49,8 +49,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     return null
   }
   if (isAllocationBurn) {
-    // ensure only 1 output so far
-    if (outputs.length !== 1) {
+    // ensure only 1 to 2 outputs (2 if change was required)
+    if (outputs.length > 2 && outputs.length < 1) {
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
       return null
     }
@@ -198,7 +198,7 @@ function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate) {
 
 function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeAddress, feeRate) {
   let txVersion = 0
-  if (syscoinBurnToEthereum && syscoinBurnToEthereum.ethAddress && syscoinBurnToEthereum.ethAddress.length > 0) {
+  if (syscoinBurnToEthereum && syscoinBurnToEthereum.ethaddress) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
   } else {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN
@@ -206,7 +206,7 @@ function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeA
   const dataAmount = ext.BN_ZERO
   let dataBuffer = null
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-    dataBuffer = syscoinBufferUtils.serializeSyscoinBurnToEthereum(syscoinBurnToEthereum)
+    dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(syscoinBurnToEthereum)
   }
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

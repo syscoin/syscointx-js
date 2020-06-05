@@ -145,7 +145,7 @@ function byteLengthMintSyscoin (mintSyscoin) {
 }
 
 function byteLengthSyscoinBurnToEthereum (syscoinBurnToEtereum) {
-  return syscoinBurnToEtereum.ethaddress.length
+  return varuint.encodingLength(syscoinBurnToEtereum.ethaddress.length) + syscoinBurnToEtereum.ethaddress.length
 }
 
 function serializeAsset (asset) {
@@ -263,14 +263,14 @@ function deserializeMintSyscoin (buffer) {
   return mintSyscoin
 }
 
-function serializeSyscoinBurnToEthereum (syscoinBurnToEthereum) {
+function serializeAllocationBurnToEthereum (syscoinBurnToEthereum) {
   const buffer = Buffer.allocUnsafe(byteLengthSyscoinBurnToEthereum(syscoinBurnToEthereum))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
   bufferWriter.writeVarSlice(syscoinBurnToEthereum.ethaddress)
   return buffer
 }
 
-function deserializeSyscoinBurnToEthereum (buffer) {
+function deserializeAllocationBurnToEthereum (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const syscoinBurnToEthereum = {} // TODO ts this
 
@@ -285,7 +285,7 @@ module.exports = {
   serializeAssetAllocations: serializeAssetAllocations,
   serializeMintSyscoin: serializeMintSyscoin,
   deserializeMintSyscoin: deserializeMintSyscoin,
-  serializeSyscoinBurnToEthereum: serializeSyscoinBurnToEthereum,
-  deserializeSyscoinBurnToEthereum: deserializeSyscoinBurnToEthereum,
+  serializeAllocationBurnToEthereum: serializeAllocationBurnToEthereum,
+  deserializeAllocationBurnToEthereum: deserializeAllocationBurnToEthereum,
   deserializeAssetAllocations: deserializeAssetAllocations
 }
