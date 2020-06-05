@@ -41,9 +41,25 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   const isNonAssetFunded = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const isAsset = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_SEND
+  const isAllocationBurn = txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded, isAsset)
   // .inputs and .outputs will be undefined if no solution was found
-  if (!inputs || !outputs) return null
+  if (!inputs || !outputs) {
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
+    return null
+  }
+  if (isAllocationBurn) {
+    // ensure only 1 output so far
+    if (outputs.length !== 1) {
+      console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
+      return null
+    }
+    if (!assetAllocations.has(outputs[0].assetInfo.assetGuid)) {
+      console.log('Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid)
+      return null
+    }
+  }
+
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   let buffArr
   if (dataBuffer) {
@@ -62,8 +78,24 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   const res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
   inputs = res.inputs
   outputs = res.outputs
-  if (!inputs || !outputs) return null
-  if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
+  if (!inputs || !outputs) {
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect')
+    return null
+  }
+  // once funded we should swap the first output asset amount to sys amount as we are burning sysx to sys in output 0
+  if (isAllocationBurn) {
+    if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+      // modify output from asset value to syscoin value
+      outputs[0].value = new BN(outputs[0].assetInfo.value)
+    }
+    const allocation = assetAllocations.get(outputs[0].assetInfo.assetGuid)
+    // change n to 1 which will be next output (opreturn burn asset output)
+    allocation.n = 1
+    if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+      // remove asset colouring from output
+      outputs[0].assetInfo = null
+    }
+  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
     const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
     // delete old asset guid and create copy of new one
     const oldAssetAllocation = assetAllocations.get(0)
@@ -88,8 +120,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   // the accumulated fee is always returned for analysis
   console.log('fee ' + res.fee)
 
-  // .inputs and .outputs will be undefined if no solution was found
-  if (!inputs || !outputs) return null
   inputs.forEach(input => {
     psbt.addInput({
       hash: input.txId,
@@ -97,6 +127,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       witnessUtxo: input.witnessUtxo
     })
   })
+
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
