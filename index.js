@@ -34,7 +34,16 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
   })
   return psbt
 }
-
+// update all allocations at some index or higher
+function updateAllocationIndexes (assetAllocations, index) {
+  for (const assetAllocation of assetAllocations.values()) {
+    assetAllocation.forEach(output => {
+      if (output.n <= index) {
+        output.n--
+      }
+    })
+  }
+}
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   const psbt = new bitcoin.Psbt()
   psbt.setVersion(txVersion)
@@ -48,16 +57,28 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
     return null
   }
+  let burnAllocationValue
   if (isAllocationBurn) {
     // ensure only 1 to 2 outputs (2 if change was required)
     if (outputs.length > 2 && outputs.length < 1) {
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
       return null
     }
+
     if (!assetAllocations.has(outputs[0].assetInfo.assetGuid)) {
       console.log('Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid)
       return null
     }
+    const allocation = assetAllocations.get(outputs[0].assetInfo.assetGuid)
+    burnAllocationValue = new BN(allocation[0].value)
+    if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
+      outputs = outputs.slice(1)
+      // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
+      updateAllocationIndexes(assetAllocations, 1)
+    }
+    // point first allocation to next output (burn output)
+    // now this index is available we can use it
+    allocation[0].n = outputs.length
   }
 
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
@@ -74,7 +95,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     value: dataAmount
   }
   outputs.push(dataOutput)
-
   const res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
   inputs = res.inputs
   outputs = res.outputs
@@ -86,14 +106,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   if (isAllocationBurn) {
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       // modify output from asset value to syscoin value
-      outputs[0].value = new BN(outputs[0].assetInfo.value)
-    }
-    const allocation = assetAllocations.get(outputs[0].assetInfo.assetGuid)
-    // change n to 1 which will be next output (opreturn burn asset output)
-    allocation.n = 1
-    if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-      // remove asset colouring from output
-      outputs[0].assetInfo = null
+      // first output is special it is the sys amount bring minted
+      outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
     const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
@@ -198,16 +212,13 @@ function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate) {
 
 function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeAddress, feeRate) {
   let txVersion = 0
-  if (syscoinBurnToEthereum && syscoinBurnToEthereum.ethaddress) {
+  if (syscoinBurnToEthereum.ethaddress.length > 0) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
   } else {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN
   }
   const dataAmount = ext.BN_ZERO
-  let dataBuffer = null
-  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-    dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(syscoinBurnToEthereum)
-  }
+  const dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(syscoinBurnToEthereum)
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
