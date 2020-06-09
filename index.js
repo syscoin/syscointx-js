@@ -47,14 +47,14 @@ function updateAllocationIndexes (assetAllocations, index) {
 
 function optimizeOutputs (outputs, assetAllocations, feeRate) {
   // first find all syscoin outputs that are change (should only be one)
-  const changeOutput = outputs.filter(output => output.changeIndex !== undefined)
+  const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
     console.log('optimizeOutputs: too many change outputs')
     return
   }
   // find all asset outputs
   const assetOutputs = outputs.filter(assetOutput => assetOutput.assetChangeIndex !== undefined && assetOutput.assetInfo.assetGuid > 0)
-  changeOutput.forEach(output => {
+  changeOutputs.forEach(output => {
     // for every asset output and find any where the allocation index and change output index don't match
     // make the allocation point to the syscoin change output and we can delete the asset output (it sends dust anyway)
     for (var i = 0; i < assetOutputs.length; i++) {
@@ -75,13 +75,13 @@ function optimizeOutputs (outputs, assetAllocations, feeRate) {
     }
   })
 }
-function optimizeFees(outputs, inputs, feeRate) {
+function optimizeFees (outputs, inputs, feeRate) {
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
     console.log('optimizeFees: too many change outputs')
     return
   }
-  if (changeOutputs.length == 0) {
+  if (changeOutputs.length === 0) {
     return
   }
   const changeOutput = changeOutputs[0]
@@ -92,7 +92,7 @@ function optimizeFees(outputs, inputs, feeRate) {
     const reduceFee = ext.sub(feeFoundInOut, feeRequired)
     console.log('optimizeFees: reducing fees by: ' + reduceFee.toNumber())
     // add to change to effectively reduce fee
-    changeOutput.value = ext.add(changeOutput.value, )
+    changeOutput.value = ext.add(changeOutput.value)
   } else if (ext.lt(feeFoundInOut, feeRequired)) {
     console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber)
   }
@@ -149,19 +149,18 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     value: dataAmount
   }
   outputs.push(dataOutput)
-  const res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
-  inputs = res.inputs
-  outputs = res.outputs
-  if (!inputs || !outputs) {
-    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs')
-    const resGas = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate)
-    inputs = resGas.inputs
-    outputs = resGas.outputs
-    if (!inputs || !outputs) {
+  let res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
+  if (!res.inputs || !res.outputs) {
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate)
+    if (!res.inputs || !res.outputs) {
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
-    }  
+    }
   }
+
+  inputs = res.inputs
+  outputs = res.outputs
   // once funded we should swap the first output asset amount to sys amount as we are burning sysx to sys in output 0
   if (isAllocationBurn) {
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
@@ -182,7 +181,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
     optimizeOutputs(outputs, assetAllocations, feeRate)
   }
-  
+
   // serialize allocations again they may have been changed in optimization
   assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   if (dataBuffer) {

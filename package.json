@@ -50,7 +50,7 @@
     "bitcoin-ops": "^1.4.1",
     "bitcoinjs-lib": "^5.1.9",
     "bn.js": "^5.1.2",
-    "coinselectsyscoin": "^1.0.6",
+    "coinselectsyscoin": "^1.0.7",
     "typeforce": "^1.18.0",
     "varuint-bitcoin": "^1.1.2"
   }
