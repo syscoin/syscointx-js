@@ -44,14 +44,14 @@ module.exports = [{
   assetOptsOptional: { updateflags: 16, prevupdateflags: 31, balance: new BN(42000000000), contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'), pubdata: Buffer.from('{"description":"new publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('{"description":"publicvalue"}') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1552452385, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(0), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+    [1552452385, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a4c6601218b885c01000008142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc217b226465736372697074696f6e223a226e6577207075626c696376616c7565227d0010001d7b226465736372697074696f6e223a227075626c696376616c7565227d1f82240000', 'hex'),
+    script: Buffer.from('6a4c6601218b885c01010008142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc217b226465736372697074696f6e223a226e6577207075626c696376616c7565227d0010001d7b226465736372697074696f6e223a227075626c696376616c7565227d1f82240000', 'hex'),
     asset: {
       allocation: new Map([
-        [1552452385, [{ n: 0, value: new BN(0) }]]
+        [1552452385, [{ n: 1, value: new BN(0) }]]
       ]),
       precision: 8,
       contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'),
@@ -77,14 +77,14 @@ module.exports = [{
   ],
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1000000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }, { value: new BN(0), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+    [1635229536, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(1000000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }, { value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
     numOutputs: 3,
-    script: Buffer.from('6a0a01609f776102000a0100', 'hex'),
+    script: Buffer.from('6a0a01609f776102000a0200', 'hex'),
     asset: {
       allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(1000000000) }, { n: 1, value: new BN(0) }]]
+        [1635229536, [{ n: 0, value: new BN(1000000000) }, { n: 2, value: new BN(0) }]]
       ])
     }
   }
@@ -99,14 +99,14 @@ module.exports = [{
   ],
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
     numOutputs: 3,
-    script: Buffer.from('6a0a01609f776102003b0127', 'hex'),
+    script: Buffer.from('6a0a01609f776102003b0227', 'hex'),
     asset: {
       allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(600000000) }, { n: 1, value: new BN(400000000) }]]
+        [1635229536, [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }]]
       ])
     }
   }
@@ -122,7 +122,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(400000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(400000000) }] }]
   ]),
   expected: {
     numOutputs: 3,
@@ -144,7 +144,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }] }]
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
     numOutputs: 2,
@@ -152,6 +152,54 @@ module.exports = [{
     asset: {
       allocation: new Map([
         [1635229536, [{ n: 1, value: new BN(100000000) }, { n: 0, value: new BN(800000000) }]]
+      ]),
+      ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
+    }
+  }
+},
+{
+  description: 'burn asset allocation to ethereum multiple inputs',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
+  feeRate: new BN(10),
+  utxos: [
+    { txId: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, script: Buffer.from('001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', 'hex'), value: 980, assetInfo: { assetGuid: 1635229536, value: new BN(900000000) } },
+    { txId: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, script: Buffer.from('001497e5ec8eb455b3bba42c5d5f952f67c26793115d', 'hex'), value: 100000914 }
+  ],
+  assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
+  ]),
+  expected: {
+    numOutputs: 2,
+    script: Buffer.from('6a1f01609f7761020109004f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    asset: {
+      allocation: new Map([
+        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]]
+      ]),
+      ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
+    }
+  }
+},
+{
+  description: 'burn asset allocation to ethereum multiple inputs, change has asset',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
+  feeRate: new BN(10),
+  utxos: [
+    { txId: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, script: Buffer.from('001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', 'hex'), value: 980, assetInfo: { assetGuid: 1635229536, value: new BN(900000000) } },
+    { txId: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, script: Buffer.from('001497e5ec8eb455b3bba42c5d5f952f67c26793115d', 'hex'), value: 100000914, assetInfo: { assetGuid: 1635229536, value: new BN(800000000) } }
+  ],
+  assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
+  ]),
+  expected: {
+    numOutputs: 2,
+    script: Buffer.from('6a1f01609f7761020109004f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    asset: {
+      allocation: new Map([
+        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }]]
       ]),
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }

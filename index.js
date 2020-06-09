@@ -38,10 +38,63 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
 function updateAllocationIndexes (assetAllocations, index) {
   for (const assetAllocation of assetAllocations.values()) {
     assetAllocation.forEach(output => {
-      if (output.n <= index) {
+      if (output.n >= index) {
         output.n--
       }
     })
+  }
+}
+
+function optimizeOutputs (outputs, assetAllocations, feeRate) {
+  // first find all syscoin outputs that are change (should only be one)
+  const changeOutput = outputs.filter(output => output.changeIndex !== undefined)
+  if (changeOutputs.length > 1) {
+    console.log('optimizeOutputs: too many change outputs')
+    return
+  }
+  // find all asset outputs
+  const assetOutputs = outputs.filter(assetOutput => assetOutput.assetChangeIndex !== undefined && assetOutput.assetInfo.assetGuid > 0)
+  changeOutput.forEach(output => {
+    // for every asset output and find any where the allocation index and change output index don't match
+    // make the allocation point to the syscoin change output and we can delete the asset output (it sends dust anyway)
+    for (var i = 0; i < assetOutputs.length; i++) {
+      const assetOutput = assetOutputs[i]
+      // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
+      const allocations = assetAllocations.get(assetOutput.assetInfo.assetGuid)
+      const allocation = allocations[assetOutput.assetChangeIndex]
+      // ensure that the output index's don't match between sys change and asset output
+      if (allocation.n !== output.changeIndex) {
+        // set them the same and remove asset output
+        allocation.n = output.changeIndex
+        // remove the output, we will recalc and optimize fees after this call
+        outputs.splice(assetOutput.assetChangeIndex, 1)
+        // because we deleted this index, it will invalidate any indexes after (we must subtract by one on every index after assetChangeIndex)
+        updateAllocationIndexes(assetAllocations, assetOutput.assetChangeIndex)
+        return
+      }
+    }
+  })
+}
+function optimizeFees(outputs, inputs, feeRate) {
+  const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
+  if (changeOutputs.length > 1) {
+    console.log('optimizeFees: too many change outputs')
+    return
+  }
+  if (changeOutputs.length == 0) {
+    return
+  }
+  const changeOutput = changeOutputs[0]
+  const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
+  const feeRequired = ext.mul(feeRate, bytesAccum)
+  const feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  if (feeFoundInOut && ext.gt(feeFoundInOut, feeRequired)) {
+    const reduceFee = ext.sub(feeFoundInOut, feeRequired)
+    console.log('optimizeFees: reducing fees by: ' + reduceFee.toNumber())
+    // add to change to effectively reduce fee
+    changeOutput.value = ext.add(changeOutput.value, )
+  } else if (ext.lt(feeFoundInOut, feeRequired)) {
+    console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber)
   }
 }
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
@@ -57,6 +110,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
     return null
   }
+
   let burnAllocationValue
   if (isAllocationBurn) {
     // ensure only 1 to 2 outputs (2 if change was required)
@@ -72,9 +126,9 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     const allocation = assetAllocations.get(outputs[0].assetInfo.assetGuid)
     burnAllocationValue = new BN(allocation[0].value)
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-      outputs = outputs.slice(1)
+      outputs.splice(0, 1)
       // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
-      updateAllocationIndexes(assetAllocations, 1)
+      updateAllocationIndexes(assetAllocations, 0)
     }
     // point first allocation to next output (burn output)
     // now this index is available we can use it
@@ -99,8 +153,14 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   inputs = res.inputs
   outputs = res.outputs
   if (!inputs || !outputs) {
-    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect')
-    return null
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs')
+    const resGas = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate)
+    inputs = resGas.inputs
+    outputs = resGas.outputs
+    if (!inputs || !outputs) {
+      console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
+      return null
+    }  
   }
   // once funded we should swap the first output asset amount to sys amount as we are burning sysx to sys in output 0
   if (isAllocationBurn) {
@@ -117,22 +177,30 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     const assetAllocation = assetAllocations.get(deterministicGuid)
     assetAllocation.push({ n: JSON.parse(JSON.stringify(oldAssetAllocation[0].n)), value: new BN(oldAssetAllocation[0].value) })
     assetAllocations.delete(0)
-
-    assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-    buffArr = [assetAllocationsBuffer, dataBuffer]
-    // update script with new guid
-    dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
-
-    // update output with new data output with new guid
-    outputs.forEach(output => {
-      if (output.script) {
-        output.script = dataScript
-      }
-    })
   }
+  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
+    optimizeOutputs(outputs, assetAllocations, feeRate)
+  }
+  
+  // serialize allocations again they may have been changed in optimization
+  assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+  if (dataBuffer) {
+    buffArr = [assetAllocationsBuffer, dataBuffer]
+  } else {
+    buffArr = [assetAllocationsBuffer]
+  }
+  // update script with new guid
+  dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
 
-  // the accumulated fee is always returned for analysis
-  console.log('fee ' + res.fee)
+  // update output with new data output with new guid
+  outputs.forEach(output => {
+    if (output.script) {
+      output.script = dataScript
+    }
+  })
+
+  optimizeFees(inputs, outputs, feeRate)
 
   inputs.forEach(input => {
     psbt.addInput({
