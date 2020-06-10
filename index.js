@@ -94,6 +94,7 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
   const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
   const feeRequired = ext.mul(feeRate, bytesAccum)
   let feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  // first output of burn to sys is not accounted for with inputs, its minted based on sysx asset output to burn
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     feeFoundInOut = ext.add(feeFoundInOut, outputs[0].value)
   }
