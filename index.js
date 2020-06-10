@@ -81,7 +81,7 @@ function optimizeOutputs (outputs, assetAllocations) {
     }
   })
 }
-function optimizeFees (outputs, inputs, feeRate) {
+function optimizeFees (txVersion, inputs, outputs, feeRate) {
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
     console.log('optimizeFees: too many change outputs')
@@ -93,14 +93,17 @@ function optimizeFees (outputs, inputs, feeRate) {
   const changeOutput = changeOutputs[0]
   const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
   const feeRequired = ext.mul(feeRate, bytesAccum)
-  const feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  let feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    feeFoundInOut = ext.add(feeFoundInOut, outputs[0].value)
+  }
   if (feeFoundInOut && ext.gt(feeFoundInOut, feeRequired)) {
     const reduceFee = ext.sub(feeFoundInOut, feeRequired)
     console.log('optimizeFees: reducing fees by: ' + reduceFee.toNumber())
     // add to change to effectively reduce fee
     changeOutput.value = ext.add(changeOutput.value)
   } else if (ext.lt(feeFoundInOut, feeRequired)) {
-    console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber)
+    console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber())
   }
 }
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
@@ -203,7 +206,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     }
   })
 
-  optimizeFees(inputs, outputs, feeRate)
+  optimizeFees(txVersion, inputs, outputs, feeRate)
 
   inputs.forEach(input => {
     psbt.addInput({
