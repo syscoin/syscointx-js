@@ -38,21 +38,21 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
 function updateAllocationIndexes (assetAllocations, index) {
   for (const assetAllocation of assetAllocations.values()) {
     assetAllocation.forEach(output => {
-      if (output.n >= index) {
+      if (output.n >= index && output.n > 0) {
         output.n--
       }
     })
   }
 }
 
-function optimizeOutputs (outputs, assetAllocations, feeRate) {
+function optimizeOutputs (outputs, assetAllocations) {
   // first find all syscoin outputs that are change (should only be one)
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
     console.log('optimizeOutputs: too many change outputs')
     return
   }
-  // find all asset outputs
+  // find all asset change outputs
   const assetOutputs = outputs.filter(assetOutput => assetOutput.assetChangeIndex !== undefined && assetOutput.assetInfo.assetGuid > 0)
   changeOutputs.forEach(output => {
     // for every asset output and find any where the allocation index and change output index don't match
@@ -64,12 +64,18 @@ function optimizeOutputs (outputs, assetAllocations, feeRate) {
       const allocation = allocations[assetOutput.assetChangeIndex]
       // ensure that the output index's don't match between sys change and asset output
       if (allocation.n !== output.changeIndex) {
-        // set them the same and remove asset output
-        allocation.n = output.changeIndex
         // remove the output, we will recalc and optimize fees after this call
-        outputs.splice(assetOutput.assetChangeIndex, 1)
+        outputs.splice(allocation.n, 1)
+
         // because we deleted this index, it will invalidate any indexes after (we must subtract by one on every index after assetChangeIndex)
-        updateAllocationIndexes(assetAllocations, assetOutput.assetChangeIndex)
+        updateAllocationIndexes(assetAllocations, allocation.n)
+
+        // set them the same and remove asset output
+        if (output.changeIndex >= allocation.n && output.changeIndex > 0) {
+          allocation.n = output.changeIndex - 1
+        } else {
+          allocation.n = output.changeIndex
+        }
         return
       }
     }
@@ -158,7 +164,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       return null
     }
   }
-
   inputs = res.inputs
   outputs = res.outputs
   // once funded we should swap the first output asset amount to sys amount as we are burning sysx to sys in output 0
@@ -179,7 +184,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   }
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-    optimizeOutputs(outputs, assetAllocations, feeRate)
+    optimizeOutputs(outputs, assetAllocations)
   }
 
   // serialize allocations again they may have been changed in optimization
@@ -191,7 +196,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   }
   // update script with new guid
   dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
-
   // update output with new data output with new guid
   outputs.forEach(output => {
     if (output.script) {

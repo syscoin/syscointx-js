@@ -52,18 +52,17 @@ function decompressAmount (x) {
   // x = 10*(9*n + d - 1) + e
   let e = ext.mod(x, tenBN).toNumber()
   x = ext.div(x, tenBN)
-  let n = new BN(0)
-  if (ext.lt(e, nineBN)) {
+  let n = ext.BN_ZERO
+  if (e < 9) {
     // x = 9*n + d - 1
-    const d = ext.add(ext.mod(x, nineBN), ext.BN_ONE).toNumber()
+    const d = ext.add(ext.mod(x, nineBN), ext.BN_ONE)
     x = ext.div(x, nineBN)
     // x = n
-    const retVal = ext.mul(x, tenBN)
-    n = ext.add(retVal, new BN(d))
+    n = ext.add(ext.mul(x, tenBN), d)
   } else {
     n = ext.add(x, ext.BN_ONE)
   }
-  while (e) {
+  while (e > 0) {
     n = ext.mul(n, tenBN)
     e--
   }
@@ -287,5 +286,7 @@ module.exports = {
   deserializeMintSyscoin: deserializeMintSyscoin,
   serializeAllocationBurnToEthereum: serializeAllocationBurnToEthereum,
   deserializeAllocationBurnToEthereum: deserializeAllocationBurnToEthereum,
-  deserializeAssetAllocations: deserializeAssetAllocations
+  deserializeAssetAllocations: deserializeAssetAllocations,
+  compressAmount: compressAmount,
+  decompressAmount: decompressAmount
 }

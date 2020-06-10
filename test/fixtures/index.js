@@ -148,10 +148,10 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a1f01609f7761020109004f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
       allocation: new Map([
-        [1635229536, [{ n: 1, value: new BN(100000000) }, { n: 0, value: new BN(800000000) }]]
+        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]]
       ]),
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
@@ -172,7 +172,7 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a1f01609f7761020109004f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
       allocation: new Map([
         [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]]
@@ -196,7 +196,7 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a1f01609f7761020109004f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a2001609f7761020009018015149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
       allocation: new Map([
         [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }]]

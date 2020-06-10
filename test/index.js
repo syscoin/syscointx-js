@@ -1,3 +1,4 @@
+
 var syscointx = require('..')
 var fixtures = require('./fixtures')
 var tape = require('tape')
@@ -5,7 +6,7 @@ var utils = require('../utils')
 const bitcoin = require('bitcoinjs-lib')
 const bitcoinops = require('bitcoin-ops')
 const syscoinBufferUtils = require('../bufferutilsassets.js')
-
+const BN = require('bn.js')
 function compareMaps (map1, map2) {
   var testVal
   if (map1.size !== map2.size) {
@@ -21,7 +22,21 @@ function compareMaps (map1, map2) {
   }
   return true
 }
-
+// test compress/uncompress
+function testPair (dec, enc) {
+  return syscoinBufferUtils.compressAmount(dec).eq(enc) &&
+  syscoinBufferUtils.decompressAmount(enc).eq(dec)
+}
+tape.test('Assertions with tape.', (assert) => {
+  assert.equal(testPair(new BN(0), new BN(0x0)), true)
+  assert.equal(testPair(new BN(1), new BN(0x1)), true)
+  assert.equal(testPair(new BN(utils.CENT), new BN(0x7)), true)
+  assert.equal(testPair(new BN(utils.COIN), new BN(0x9)), true)
+  assert.equal(testPair(new BN(16 * utils.COIN), new BN(149)), true)
+  assert.equal(testPair(new BN(50 * utils.COIN), new BN(0x32)), true)
+  assert.equal(testPair(new BN(21000000).mul(new BN(utils.COIN)), new BN(0x1406f40)), true)
+  assert.end()
+})
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
     var utxos = utils.sanitizeBlockbookUTXOs(f.utxos)
