@@ -82,7 +82,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
-      const psbt = syscointx.assetUpdate(f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      const psbt = syscointx.assetUpdate({}, f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       txOutputs = psbt.txOutputs
       t.same(txOutputs.length, f.expected.numOutputs)
       txOutputs.forEach(output => {

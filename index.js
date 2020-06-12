@@ -280,16 +280,31 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetUpdate (assetOpts, assetOptsOptional, utxos, assetMap, sysChangeAddress, feeRate) {
+function assetUpdate (assetObj, assetOpts, assetOptsOptional, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_UPDATE
   const dataAmount = ext.BN_ZERO
   assetOpts.balance = assetOpts.balance || assetOptsOptional.balance || ext.BN_ZERO
+
   assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
   assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
+  // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
+  if (assetObj.contract === assetOpts.contract) {
+    assetOpts.contract = ''
+    assetOpts.prevcontract = ''
+  }
+  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
   assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
+  if (assetObj.pubdata === assetOpts.pubdata) {
+    assetOpts.pubdata = ''
+    assetOpts.prevpubdata = ''
+  }
+
   assetOpts.updateflags = assetOpts.updateflags || assetOptsOptional.updateflags || 31
   assetOpts.prevupdateflags = assetOpts.prevupdateflags || assetOptsOptional.prevupdateflags || 31
+  if (assetObj.updateflags === assetOpts.updateflags) {
+    assetOpts.updateflags = 31
+    assetOpts.prevupdateflags = 31
+  }
   // these are inited to 0 they are included on wire as empty, also used to ser/der into the asset db in core
   assetOpts.totalsupply = ext.BN_ZERO
   assetOpts.maxsupply = ext.BN_ZERO
