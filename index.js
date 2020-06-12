@@ -5,14 +5,41 @@ const syscoinBufferUtils = require('./bufferutilsassets.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate) {
+  let txVersion = 2
   const psbt = new bitcoin.Psbt()
   const inputsArr = []
-  const { inputs, outputs, fee } = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate)
+  let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate)
+  if (!res.inputs || !res.outputs) {
+    const assetAllocations = new Map()
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate)
+    if (!res.inputs || !res.outputs) {
+      console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
+      return null
+    }
+    if (assetAllocations.size() > 0) {
+      txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
+      // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
+      optimizeOutputs(res.outputs, assetAllocations)
+      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+      const buffArr = [assetAllocationsBuffer]
+      // create and add data script for OP_RETURN
+      const dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
+      const dataOutput = {
+        script: dataScript,
+        value: ext.BN_ZERO
+      }
+      res.outputs.push(dataOutput)
+    }
+  }
+  const inputs = res.inputs
+  const outputs = res.outputs
   // the accumulated fee is always returned for analysis
-  console.log(fee)
+  console.log(res.fee)
 
-  // .inputs and .outputs will be undefined if no solution was found
-  if (!inputs || !outputs) return null
+  optimizeFees(txVersion, inputs, outputs, feeRate)
+
+  psbt.setVersion(txVersion)
 
   inputs.forEach(input =>
     psbt.addInput({
