@@ -28,7 +28,7 @@ async function fetchBackendUTXOS (backendURL, addressOrXpub) {
     return sanitizeBlockbookUTXOs(utxos)
   } catch (e) {
     console.error(e)
-    return e
+    throw e
   }
 }
 async function fetchBackendAsset (backendURL, assetGuid) {
@@ -38,7 +38,7 @@ async function fetchBackendAsset (backendURL, assetGuid) {
     return data
   } catch (e) {
     console.error(e)
-    return e
+    throw e
   }
 }
 function generateAssetGuid (txid) {
