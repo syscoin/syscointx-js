@@ -22,20 +22,25 @@ function sanitizeBlockbookUTXOs (utxos) {
   return sanitizedUtxos
 }
 async function fetchBackendUTXOS (backendURL, addressOrXpub) {
-  const request = axios.get(backendURL + addressOrXpub)
   try {
-    const utxos = await request()
-    return sanitizeBlockbookUTXOs(utxos)
+    const request = await axios.get(backendURL + addressOrXpub)
+    if (request && request.data) {
+      return sanitizeBlockbookUTXOs(request.data)
+    }
+    return null
   } catch (e) {
     console.error(e)
     throw e
   }
 }
+
 async function fetchBackendAsset (backendURL, assetGuid) {
-  const request = axios.get(backendURL + assetGuid)
   try {
-    const data = await request()
-    return data
+    const request = await axios.get(backendURL + assetGuid + '?details=basic')
+    if (request && request.data && request.data.asset) {
+      return request.data.asset
+    }
+    return null
   } catch (e) {
     console.error(e)
     throw e
