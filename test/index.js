@@ -149,8 +149,21 @@ fixtures.forEach(function (f) {
           t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
         }
       })
+    } else if (f.version === 2) {
+      const psbt = syscointx.createSyscoinTransaction(utxos, f.sysChangeAddress, f.outputs, f.feeRate)
+      txOutputs = psbt.txOutputs
+      t.same(txOutputs.length, f.expected.numOutputs)
+      t.same(psbt.version, f.expected.version)
+      txOutputs.forEach(output => {
+        // find opreturn
+        const chunks = bitcoin.script.decompile(output.script)
+        if (chunks[0] === bitcoinops.OP_RETURN) {
+          t.same(output.script, f.expected.script)
+          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+        }
+      })
     }
-
     t.end()
   })
 })

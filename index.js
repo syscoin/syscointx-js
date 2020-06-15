@@ -17,7 +17,7 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
     }
-    if (assetAllocations.size() > 0) {
+    if (assetAllocations.size > 0) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
       optimizeOutputs(res.outputs, assetAllocations)
@@ -34,8 +34,6 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
   }
   const inputs = res.inputs
   const outputs = res.outputs
-  // the accumulated fee is always returned for analysis
-  console.log(res.fee)
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
 
@@ -55,7 +53,8 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
       output.address = sysChangeAddress
     }
     psbt.addOutput({
-      address: output.address,
+      script: output.script,
+      address: output.script ? null : output.address,
       value: output.value.toNumber()
     })
   })
