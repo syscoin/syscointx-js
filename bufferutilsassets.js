@@ -227,9 +227,8 @@ function serializeAssetAllocations (assetAllocations) {
 function serializeMintSyscoin (mintSyscoin) {
   const buffer = Buffer.allocUnsafe(byteLengthMintSyscoin(mintSyscoin))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-
-  putUint(bufferWriter, new BN(mintSyscoin.bridgetransferid))
-  putUint(bufferWriter, new BN(mintSyscoin.blocknumber))
+  bufferWriter.writeUInt32(mintSyscoin.bridgetransferid)
+  bufferWriter.writeUInt32(mintSyscoin.blocknumber)
   bufferWriter.writeVarSlice(mintSyscoin.txvalue)
   bufferWriter.writeVarSlice(mintSyscoin.txparentnodes)
   bufferWriter.writeVarSlice(mintSyscoin.txroot)
@@ -248,8 +247,8 @@ function deserializeMintSyscoin (buffer) {
   const mintSyscoin = {} // TODO ts this
 
   mintSyscoin.allocation = deserializeAssetAllocations(null, bufferReader)
-  mintSyscoin.bridgetransferid = readUint(bufferReader).toNumber()
-  mintSyscoin.blocknumber = readUint(bufferReader).toNumber()
+  mintSyscoin.bridgetransferid = bufferReader.readUInt32()
+  mintSyscoin.blocknumber = bufferReader.readUInt32()
   mintSyscoin.txvalue = bufferReader.readVarSlice()
   mintSyscoin.txparentnodes = bufferReader.readVarSlice()
   mintSyscoin.txroot = bufferReader.readVarSlice()
