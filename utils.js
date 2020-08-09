@@ -1,4 +1,5 @@
 var BN = require('bn.js')
+const ext = require('./bn-extensions')
 const axios = require('axios')
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
@@ -46,8 +47,9 @@ async function fetchBackendAsset (backendURL, assetGuid) {
     throw e
   }
 }
-function generateAssetGuid (txid) {
-  let bigNum = new BN(txid, 16)
+function generateAssetGuid (input) {
+  let bigNum = new BN(input.txId, 16)
+  bigNum = ext.add(bigNum, new BN(input.vout))
   // clear bits 33 and up to keep low 32 bits
   bigNum = bigNum.maskn(32)
   return bigNum.toNumber()

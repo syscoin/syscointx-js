@@ -212,7 +212,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    assetAllocations.voutAsset[0].assetGuid = utils.generateAssetGuid(inputs[0].txId)
+    assetAllocations.voutAsset[0].assetGuid = utils.generateAssetGuid(inputs[0])
   }
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
