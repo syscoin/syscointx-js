@@ -20,7 +20,7 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
     if (assetAllocations.length > 0) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-      optimizeOutputs(res.inputs, res.outputs, assetAllocations)
+      optimizeOutputs(null, res.outputs, assetAllocations)
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
       const buffArr = [assetAllocationsBuffer]
       // create and add data script for OP_RETURN
@@ -73,7 +73,7 @@ function updateAllocationIndexes (assetAllocations, index) {
   })
 }
 
-function optimizeOutputs (inputs, outputs, assetAllocations) {
+function optimizeOutputs (assetMap, outputs, assetAllocations) {
   // first find all syscoin outputs that are change (should only be one)
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
@@ -89,6 +89,13 @@ function optimizeOutputs (inputs, outputs, assetAllocations) {
       const assetOutput = assetOutputs[i]
       // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
       const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === assetOutput.assetInfo.assetGuid)
+       // update notary sigs to empty if asset not requiring notarization to save on fees (65 bytes each asset)
+      if(assetMap) {
+        const assetMapEntry = assetMap.get(assetOutput.assetInfo.assetGuid)
+        if(assetMapEntry && !assetMapEntry.requireNotarization) {
+          allocations.notarysig = Buffer.from('')
+        }
+      }
       const allocation = allocations.values[assetOutput.assetChangeIndex]
       // ensure that the output index's don't match between sys change and asset output
       if (allocation.n !== output.changeIndex) {
@@ -106,14 +113,6 @@ function optimizeOutputs (inputs, outputs, assetAllocations) {
         }
         return
       }
-    }
-  })
-  // update notary sigs to empty if asset input not requiring notarization to save on fees (65 bytes each asset)
-  const assetInputs = inputs.filter(assetInput => assetInput.assetInfo !== undefined && assetInput.assetInfo.assetGuid > 0)
-  assetInputs.forEach(input => {
-    if(!input.assetInfo.reqNotary) {
-      let allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === input.assetInfo.assetGuid)
-      allocations.notarysig = Buffer.from('')
     }
   })
 }
@@ -217,7 +216,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   }
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-    optimizeOutputs(inputs, outputs, assetAllocations)
+    optimizeOutputs(assetMap, outputs, assetAllocations)
   }
 
   // serialize allocations again they may have been changed in optimization
