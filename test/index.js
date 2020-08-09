@@ -7,21 +7,6 @@ const bitcoin = require('bitcoinjs-lib')
 const bitcoinops = require('bitcoin-ops')
 const syscoinBufferUtils = require('../bufferutilsassets.js')
 const BN = require('bn.js')
-function compareMaps (map1, map2) {
-  var testVal
-  if (map1.size !== map2.size) {
-    return false
-  }
-  for (var [key, val] of map1) {
-    testVal = map2.get(key)
-    // in cases of an undefined value, make sure the key
-    // actually exists on the object so there are no false positives
-    if (JSON.stringify(testVal) !== JSON.stringify(val) || (testVal === undefined && !map2.has(key))) {
-      return false
-    }
-  }
-  return true
-}
 // test compress/uncompress
 function testPair (dec, enc) {
   return syscoinBufferUtils.compressAmount(dec).eq(enc) &&
@@ -51,7 +36,7 @@ fixtures.forEach(function (f) {
         if (chunks[0] === bitcoinops.OP_RETURN) {
           t.same(output.script, f.expected.script)
           const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+          t.same(assetAllocations, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
@@ -64,7 +49,7 @@ fixtures.forEach(function (f) {
         if (chunks[0] === bitcoinops.OP_RETURN) {
           t.same(output.script, f.expected.script)
           const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+          t.same(assetAllocations, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
@@ -78,7 +63,7 @@ fixtures.forEach(function (f) {
           t.same(output.script, f.expected.script)
           const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
           t.same(asset, f.expected.asset)
-          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+          t.same(asset.allocation, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
@@ -92,7 +77,7 @@ fixtures.forEach(function (f) {
           t.same(output.script, f.expected.script)
           const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
           t.same(asset, f.expected.asset)
-          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+          t.same(asset.allocation, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
@@ -105,7 +90,7 @@ fixtures.forEach(function (f) {
         if (chunks[0] === bitcoinops.OP_RETURN) {
           t.same(output.script, f.expected.script)
           const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+          t.same(assetAllocations, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
@@ -119,7 +104,7 @@ fixtures.forEach(function (f) {
           t.same(output.script, f.expected.script)
           const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
           t.same(asset, f.expected.asset)
-          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+          t.same(asset.allocation, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
@@ -133,7 +118,7 @@ fixtures.forEach(function (f) {
           t.same(output.script, f.expected.script)
           const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
           t.same(asset, f.expected.asset)
-          t.same(compareMaps(asset.allocation, f.expected.asset.allocation), true)
+          t.same(asset.allocation, f.expected.asset.allocation)
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
@@ -146,7 +131,7 @@ fixtures.forEach(function (f) {
         if (chunks[0] === bitcoinops.OP_RETURN) {
           t.same(output.script, f.expected.script)
           const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+          t.same(assetAllocations, f.expected.asset.allocation)
         }
       })
     } else if (f.version === 2) {
@@ -160,7 +145,7 @@ fixtures.forEach(function (f) {
         if (chunks[0] === bitcoinops.OP_RETURN) {
           t.same(output.script, f.expected.script)
           const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(compareMaps(assetAllocations, f.expected.asset.allocation), true)
+          t.same(assetAllocations, f.expected.asset.allocation)
         }
       })
     }

@@ -10,17 +10,17 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
   const inputsArr = []
   let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate)
   if (!res.inputs || !res.outputs) {
-    const assetAllocations = new Map()
+    const assetAllocations = []
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
     res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate)
     if (!res.inputs || !res.outputs) {
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
     }
-    if (assetAllocations.size > 0) {
+    if (assetAllocations.length > 0) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-      optimizeOutputs(res.outputs, assetAllocations)
+      optimizeOutputs(res.inputs, res.outputs, assetAllocations)
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
       const buffArr = [assetAllocationsBuffer]
       // create and add data script for OP_RETURN
@@ -43,7 +43,8 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
     psbt.addInput({
       hash: input.txId,
       index: input.vout,
-      witnessUtxo: input.witnessUtxo
+      witnessUtxo: input.witnessUtxo,
+      assetInfo: input.assetInfo
     })
   )
   outputs.forEach(output => {
@@ -55,23 +56,24 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
     psbt.addOutput({
       script: output.script,
       address: output.script ? null : output.address,
-      value: output.value.toNumber()
+      value: output.value.toNumber(),
+      assetInfo: output.assetInfo
     })
   })
   return psbt
 }
 // update all allocations at some index or higher
 function updateAllocationIndexes (assetAllocations, index) {
-  for (const assetAllocation of assetAllocations.values()) {
-    assetAllocation.forEach(output => {
+  assetAllocations.forEach(voutAsset => {
+    voutAsset.values.forEach(output => {
       if (output.n >= index && output.n > 0) {
         output.n--
       }
     })
-  }
+  })
 }
 
-function optimizeOutputs (outputs, assetAllocations) {
+function optimizeOutputs (inputs, outputs, assetAllocations) {
   // first find all syscoin outputs that are change (should only be one)
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
@@ -86,8 +88,8 @@ function optimizeOutputs (outputs, assetAllocations) {
     for (var i = 0; i < assetOutputs.length; i++) {
       const assetOutput = assetOutputs[i]
       // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
-      const allocations = assetAllocations.get(assetOutput.assetInfo.assetGuid)
-      const allocation = allocations[assetOutput.assetChangeIndex]
+      const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === assetOutput.assetInfo.assetGuid)
+      const allocation = allocations.values[assetOutput.assetChangeIndex]
       // ensure that the output index's don't match between sys change and asset output
       if (allocation.n !== output.changeIndex) {
         // remove the output, we will recalc and optimize fees after this call
@@ -104,6 +106,14 @@ function optimizeOutputs (outputs, assetAllocations) {
         }
         return
       }
+    }
+  })
+  // update notary sigs to empty if asset input not requiring notarization to save on fees (65 bytes each asset)
+  const assetInputs = inputs.filter(assetInput => assetInput.assetInfo !== undefined && assetInput.assetInfo.assetGuid > 0)
+  assetInputs.forEach(input => {
+    if(!input.assetInfo.reqNotary) {
+      let allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === input.assetInfo.assetGuid)
+      allocations.notarysig = Buffer.from('')
     }
   })
 }
@@ -154,13 +164,12 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
       return null
     }
-
-    if (!assetAllocations.has(outputs[0].assetInfo.assetGuid)) {
+    let assetAllocation = assetAllocations.find(voutAsset => voutAsset.assetGuid === outputs[0].assetInfo.assetGuid)
+    if (assetAllocation === undefined) {
       console.log('Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid)
       return null
     }
-    const allocation = assetAllocations.get(outputs[0].assetInfo.assetGuid)
-    burnAllocationValue = new BN(allocation[0].value)
+    burnAllocationValue = new BN(assetAllocation[0].value)
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
       outputs.splice(0, 1)
       // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
@@ -168,7 +177,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     }
     // point first allocation to next output (burn output)
     // now this index is available we can use it
-    allocation[0].n = outputs.length
+    assetAllocation[0].n = outputs.length
   }
 
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
@@ -204,17 +213,11 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    const deterministicGuid = utils.generateAssetGuid(inputs[0].txId)
-    // delete old asset guid and create copy of new one
-    const oldAssetAllocation = assetAllocations.get(0)
-    assetAllocations.set(deterministicGuid, [])
-    const assetAllocation = assetAllocations.get(deterministicGuid)
-    assetAllocation.push({ n: JSON.parse(JSON.stringify(oldAssetAllocation[0].n)), value: new BN(oldAssetAllocation[0].value) })
-    assetAllocations.delete(0)
+    assetAllocations.voutAsset[0].assetGuid = utils.generateAssetGuid(inputs[0].txId)
   }
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-    optimizeOutputs(outputs, assetAllocations)
+    optimizeOutputs(inputs, outputs, assetAllocations)
   }
 
   // serialize allocations again they may have been changed in optimization
@@ -239,7 +242,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     psbt.addInput({
       hash: input.txId,
       index: input.vout,
-      witnessUtxo: input.witnessUtxo
+      witnessUtxo: input.witnessUtxo,
+      assetInfo: input.assetInfo
     })
   })
 
@@ -258,7 +262,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     psbt.addOutput({
       script: output.script,
       address: output.script ? null : output.address,
-      value: output.value.toNumber()
+      value: output.value.toNumber(),
+      assetInfo: output.assetInfo
     })
   })
   return psbt
@@ -270,6 +275,8 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
   assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
   assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
   assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
+  assetOpts.notarykeyid = assetOpts.notarykeyid || assetOptsOptional.notarykeyid || Buffer.from('')
+  assetOpts.prevnotarykeyid = assetOpts.prevnotarykeyid || assetOptsOptional.prevnotarykeyid || Buffer.from('')
   assetOpts.totalsupply = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
@@ -284,18 +291,20 @@ function assetUpdate (assetObj, assetOpts, assetOptsOptional, utxos, assetMap, s
   const dataAmount = ext.BN_ZERO
   assetOpts.balance = assetOpts.balance || assetOptsOptional.balance || ext.BN_ZERO
 
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || ''
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || ''
+  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || Buffer.from('')
+  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
+  assetOpts.notarykeyid = assetOpts.notarykeyid || assetOptsOptional.notarykeyid || Buffer.from('')
+  assetOpts.prevnotarykeyid = assetOpts.prevnotarykeyid || assetOptsOptional.prevnotarykeyid || Buffer.from('')
   // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
   if (assetObj.contract === assetOpts.contract) {
-    assetOpts.contract = ''
-    assetOpts.prevcontract = ''
+    assetOpts.contract = Buffer.from('')
+    assetOpts.prevcontract = Buffer.from('')
   }
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || ''
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || ''
+  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
+  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
   if (assetObj.pubdata === assetOpts.pubdata) {
-    assetOpts.pubdata = ''
-    assetOpts.prevpubdata = ''
+    assetOpts.pubdata = Buffer.from('')
+    assetOpts.prevpubdata = Buffer.from('')
   }
 
   assetOpts.updateflags = assetOpts.updateflags || assetOptsOptional.updateflags || 31
@@ -303,6 +312,10 @@ function assetUpdate (assetObj, assetOpts, assetOptsOptional, utxos, assetMap, s
   if (assetObj.updateflags === assetOpts.updateflags) {
     assetOpts.updateflags = 31
     assetOpts.prevupdateflags = 31
+  }
+  if (assetObj.notarykeyid === assetOpts.notarykeyid) {
+    assetOpts.notarykeyid = Buffer.from('')
+    assetOpts.prevnotarykeyid = Buffer.from('')
   }
   // these are inited to 0 they are included on wire as empty, also used to ser/der into the asset db in core
   assetOpts.totalsupply = ext.BN_ZERO

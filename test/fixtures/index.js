@@ -15,9 +15,7 @@ module.exports = [{
     numOutputs: 3,
     script: Buffer.from('6a3401218b885c01000008001d7b226465736372697074696f6e223a227075626c696376616c7565227d034341541f00001f64008668', 'hex'),
     asset: {
-      allocation: new Map([
-        [1552452385, [{ n: 0, value: new BN(0) }]]
-      ]),
+      allocation: [{assetGuid:1552452385, values:[{ n: 0, value: new BN(0) }]}],
       precision: 8,
       contract: Buffer.from(''),
       pubdata: Buffer.from('{"description":"publicvalue"}'),
@@ -50,9 +48,7 @@ module.exports = [{
     numOutputs: 2,
     script: Buffer.from('6a4c6601218b885c01010008142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc217b226465736372697074696f6e223a226e6577207075626c696376616c7565227d0010001d7b226465736372697074696f6e223a227075626c696376616c7565227d1f82240000', 'hex'),
     asset: {
-      allocation: new Map([
-        [1552452385, [{ n: 1, value: new BN(0) }]]
-      ]),
+      allocation: [{assetGuid:1552452385, values:[{ n: 1, value: new BN(0) }]}],
       precision: 8,
       contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'),
       pubdata: Buffer.from('{"description":"new publicvalue"}'),
@@ -83,9 +79,7 @@ module.exports = [{
     numOutputs: 3,
     script: Buffer.from('6a0a01609f776102000a0200', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(1000000000) }, { n: 2, value: new BN(0) }]]
-      ])
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(1000000000) }, { n: 2, value: new BN(0) }]}],
     }
   }
 },
@@ -105,9 +99,7 @@ module.exports = [{
     numOutputs: 3,
     script: Buffer.from('6a0a01609f776102003b0227', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }]]
-      ])
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }]}],
     }
   }
 },
@@ -128,9 +120,7 @@ module.exports = [{
     numOutputs: 3,
     script: Buffer.from('6a0901609f776101012700', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 1, value: new BN(400000000) }]]
-      ])
+      allocation: [{assetGuid:1635229536, values:[{ n: 1, value: new BN(400000000) }]}],
     }
   }
 },
@@ -150,9 +140,7 @@ module.exports = [{
     numOutputs: 2,
     script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]]
-      ]),
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]}],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -174,9 +162,7 @@ module.exports = [{
     numOutputs: 2,
     script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]]
-      ]),
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]}],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -198,9 +184,7 @@ module.exports = [{
     numOutputs: 2,
     script: Buffer.from('6a2001609f7761020009018015149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }]]
-      ]),
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }]}],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -239,9 +223,7 @@ module.exports = [{
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0901609f77610100801f', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(1700000000) }]]
-      ])
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(1700000000) }]}],
     }
   }
 },
@@ -262,9 +244,7 @@ module.exports = [{
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0801609f7761010059', 'hex'),
     asset: {
-      allocation: new Map([
-        [1635229536, [{ n: 0, value: new BN(900000000) }]]
-      ])
+      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(900000000) }]}],
     }
   }
 }
