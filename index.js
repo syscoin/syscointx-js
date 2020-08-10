@@ -20,7 +20,7 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
     if (assetAllocations.length > 0) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-      optimizeOutputs(null, res.outputs, assetAllocations)
+      optimizeOutputs(res.outputs, assetAllocations)
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
       const buffArr = [assetAllocationsBuffer]
       // create and add data script for OP_RETURN
@@ -72,8 +72,18 @@ function updateAllocationIndexes (assetAllocations, index) {
     })
   })
 }
-
-function optimizeOutputs (assetMap, outputs, assetAllocations) {
+// remove 65 byte prefilled signature if its not needed, saves on fees
+function optimizeNotarizationSigs (assetMap, assetAllocations, outputs) {
+  const assetOutputs = outputs.filter(assetOutput => assetOutput.assetInfo && assetOutput.assetInfo.assetGuid > 0)
+  assetOutputs.forEach(output => {
+    const assetMapEntry = assetMap.get(output.assetInfo.assetGuid)
+    if (assetMapEntry && !assetMapEntry.requireNotarization) {
+      const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === output.assetInfo.assetGuid)
+      allocations.notarysig = Buffer.from('')
+    }
+  })
+}
+function optimizeOutputs (outputs, assetAllocations) {
   // first find all syscoin outputs that are change (should only be one)
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
@@ -81,21 +91,14 @@ function optimizeOutputs (assetMap, outputs, assetAllocations) {
     return
   }
   // find all asset change outputs
-  const assetOutputs = outputs.filter(assetOutput => assetOutput.assetChangeIndex !== undefined && assetOutput.assetInfo.assetGuid > 0)
+  const assetChangeOutputs = outputs.filter(assetOutput => assetOutput.assetChangeIndex !== undefined && assetOutput.assetInfo.assetGuid > 0)
   changeOutputs.forEach(output => {
     // for every asset output and find any where the allocation index and change output index don't match
     // make the allocation point to the syscoin change output and we can delete the asset output (it sends dust anyway)
-    for (var i = 0; i < assetOutputs.length; i++) {
-      const assetOutput = assetOutputs[i]
+    for (var i = 0; i < assetChangeOutputs.length; i++) {
+      const assetOutput = assetChangeOutputs[i]
       // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
       const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === assetOutput.assetInfo.assetGuid)
-       // update notary sigs to empty if asset not requiring notarization to save on fees (65 bytes each asset)
-      if(assetMap) {
-        const assetMapEntry = assetMap.get(assetOutput.assetInfo.assetGuid)
-        if(assetMapEntry && !assetMapEntry.requireNotarization) {
-          allocations.notarysig = Buffer.from('')
-        }
-      }
       const allocation = allocations.values[assetOutput.assetChangeIndex]
       // ensure that the output index's don't match between sys change and asset output
       if (allocation.n !== output.changeIndex) {
@@ -104,13 +107,14 @@ function optimizeOutputs (assetMap, outputs, assetAllocations) {
 
         // because we deleted this index, it will invalidate any indexes after (we must subtract by one on every index after assetChangeIndex)
         updateAllocationIndexes(assetAllocations, allocation.n)
-
         // set them the same and remove asset output
         if (output.changeIndex >= allocation.n && output.changeIndex > 0) {
           allocation.n = output.changeIndex - 1
         } else {
           allocation.n = output.changeIndex
         }
+        // add assetInfo to output as its a sys change output which now becomes asset output as well (only needed for further calls which check assetInfo on outputs, not for signing or verifying the transaction)
+        outputs[allocation.n].assetInfo = assetOutput.assetInfo
         return
       }
     }
@@ -163,12 +167,12 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
       return null
     }
-    let assetAllocation = assetAllocations.find(voutAsset => voutAsset.assetGuid === outputs[0].assetInfo.assetGuid)
+    const assetAllocation = assetAllocations.find(voutAsset => voutAsset.assetGuid === outputs[0].assetInfo.assetGuid)
     if (assetAllocation === undefined) {
       console.log('Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid)
       return null
     }
-    burnAllocationValue = new BN(assetAllocation[0].value)
+    burnAllocationValue = new BN(assetAllocation.values[0].value)
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
       outputs.splice(0, 1)
       // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
@@ -176,7 +180,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     }
     // point first allocation to next output (burn output)
     // now this index is available we can use it
-    assetAllocation[0].n = outputs.length
+    assetAllocation.values[0].n = outputs.length
   }
 
   let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
@@ -212,13 +216,24 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    assetAllocations.voutAsset[0].assetGuid = utils.generateAssetGuid(inputs[0])
+    assetAllocations[0].assetGuid = utils.generateAssetGuid(inputs[0])
+    const assetOutput = outputs.filter(output => output.assetInfo && output.assetInfo.assetGuid === 0)
+    if (assetOutput.length !== 1) {
+      console.log('createAssetTransaction: invalid number of asset outputs for activate')
+      return null
+    }
+    // update outputs
+    assetOutput[0].assetInfo.assetGuid = assetAllocations[0].assetGuid
+    // update assetMap with new key
+    const oldAssetMapEntry = assetMap.get(0)
+    assetMap.delete(0)
+    assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-    optimizeOutputs(assetMap, outputs, assetAllocations)
+    optimizeOutputs(outputs, assetAllocations)
   }
-
+  optimizeNotarizationSigs(assetMap, assetAllocations, outputs)
   // serialize allocations again they may have been changed in optimization
   assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   if (dataBuffer) {
@@ -245,7 +260,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       assetInfo: input.assetInfo
     })
   })
-
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for

@@ -109,8 +109,8 @@ function byteLengthAsset (asset) {
   len += varuint.encodingLength(asset.pubdata.length) + asset.pubdata.length
   len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
   len += 1 // updateflags
-  len += varuint.encodingLength(asset.notarysig.length) + asset.notarysig.length
-  len += varuint.encodingLength(asset.prevnotarysig.length) + asset.prevnotarysig.length
+  len += varuint.encodingLength(asset.notarykeyid.length) + asset.notarykeyid.length
+  len += varuint.encodingLength(asset.prevnotarykeyid.length) + asset.prevnotarykeyid.length
   len += varuint.encodingLength(asset.prevcontract.length) + asset.prevcontract.length
   len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
   len += 1 // prevupdateflags
@@ -128,7 +128,7 @@ function byteLengthAssetVoutValue () {
 
 function byteLengthAssetVout (assetAllocation) {
   let len = 4 // 4 byte uint32 asset guid
-  len += varuint.encodingLength(assetAllocation.length)
+  len += varuint.encodingLength(assetAllocation.values.length)
   len += byteLengthAssetVoutValue() * assetAllocation.values.length
   len += varuint.encodingLength(assetAllocation.notarysig.length) + assetAllocation.notarysig.length
   return len
@@ -136,7 +136,7 @@ function byteLengthAssetVout (assetAllocation) {
 
 function byteLengthAssetAllocation (assetAllocations) {
   let len = 0
-  len += varuint.encodingLength(assetAllocations.size)
+  len += varuint.encodingLength(assetAllocations.length)
   assetAllocations.forEach(assetAllocation => {
     len += byteLengthAssetVout(assetAllocation)
   })
@@ -182,21 +182,21 @@ function serializeAsset (asset) {
 }
 
 function deserializeAssetVoutValue (bufferReader) {
-    const n = bufferReader.readVarInt()
-    const valueSat = readUint(bufferReader)
-    const value = decompressAmount(valueSat)
-    return { n: n, value: value };
+  const n = bufferReader.readVarInt()
+  const valueSat = readUint(bufferReader)
+  const value = decompressAmount(valueSat)
+  return { n: n, value: value }
 }
 
 function deserializeAssetVout (bufferReader) {
   const assetGuid = bufferReader.readUInt32()
   const numOutputs = bufferReader.readVarInt()
-  let values = []
+  const values = []
   for (var j = 0; j < numOutputs; j++) {
     values.push(deserializeAssetVoutValue(bufferReader))
   }
   const notarysig = bufferReader.readVarSlice()
-  return {assetGuid: assetGuid, values: values, notarysig: notarysig};
+  return { assetGuid: assetGuid, values: values, notarysig: notarysig }
 }
 
 function deserializeAssetAllocations (buffer, bufferReaderIn) {
@@ -205,7 +205,7 @@ function deserializeAssetAllocations (buffer, bufferReaderIn) {
   const numAllocations = bufferReader.readVarInt()
   for (var i = 0; i < numAllocations; i++) {
     const voutAsset = deserializeAssetVout(bufferReader)
-    assetAllocations.push(voutAsset);
+    assetAllocations.push(voutAsset)
   }
   return assetAllocations
 }
@@ -253,9 +253,9 @@ function serializeAssetVout (assetAllocation, bufferWriter) {
 function serializeAssetAllocations (assetAllocations) {
   const buffer = Buffer.allocUnsafe(byteLengthAssetAllocation(assetAllocations))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-  bufferWriter.writeVarInt(assetAllocations.size)
+  bufferWriter.writeVarInt(assetAllocations.length)
   assetAllocations.forEach(assetAllocation => {
-    serializeAssetVout (assetAllocation, bufferWriter)
+    serializeAssetVout(assetAllocation, bufferWriter)
   })
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAssetAllocation
   return buffer.slice(0, bufferWriter.offset)

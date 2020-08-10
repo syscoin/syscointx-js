@@ -8,22 +8,24 @@ module.exports = [{
   utxos: [
     { txId: 'add9bf0783d1e18bccf016e5c779be5cd390d8906f7b2ef4afa28c775c888b21', vout: 0, script: Buffer.from('001495e1cb724b74c32526209265c9f96a4e8ed256db', 'hex'), value: 100000000000 }
   ],
-  assetOpts: { precision: 8, symbol: Buffer.from('CAT'), updateflags: 31, prevupdateflags: 31, balance: new BN(10000000000), maxsupply: new BN(100000000000) },
-  assetOptsOptional: { contract: Buffer.from(''), pubdata: Buffer.from('{"description":"publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('') },
+  assetOpts: { precision: 8, symbol: utils.encodeToBase64('CAT'), updateflags: 31, prevupdateflags: 31, balance: new BN(10000000000), maxsupply: new BN(100000000000) },
+  assetOptsOptional: { contract: Buffer.from(''), pubdata: utils.encodeToBase64('{"d":"publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   expected: {
-    numOutputs: 3,
-    script: Buffer.from('6a3401218b885c01000008001d7b226465736372697074696f6e223a227075626c696376616c7565227d034341541f00001f64008668', 'hex'),
+    numOutputs: 2,
+    script: Buffer.from('6a3701218b885c0101000008001c65794a6b496a6f696348566962476c6a646d46736457556966513d3d04513046551f000000001f64008668', 'hex'),
     asset: {
-      allocation: [{assetGuid:1552452385, values:[{ n: 0, value: new BN(0) }]}],
+      allocation: [{ assetGuid: 1552452385, values: [{ n: 1, value: new BN(0) }], notarysig: Buffer.from('') }],
       precision: 8,
       contract: Buffer.from(''),
-      pubdata: Buffer.from('{"description":"publicvalue"}'),
-      symbol: Buffer.from('CAT'),
+      pubdata: utils.encodeToBase64('{"d":"publicvalue"}'),
+      symbol: utils.encodeToBase64('CAT'),
       updateflags: 31,
       prevcontract: Buffer.from(''),
       prevpubdata: Buffer.from(''),
       prevupdateflags: 31,
+      notarykeyid: Buffer.from(''),
+      prevnotarykeyid: Buffer.from(''),
       balance: new BN(10000000000),
       totalsupply: new BN(0),
       maxsupply: new BN(100000000000)
@@ -39,24 +41,26 @@ module.exports = [{
     { txId: 'd31783dcbb96cf104970a5fd427f3c9f91921233478f80d8b63d80b2089ea15c', vout: 2, script: Buffer.from('001493b69b7e29c5869a50a41c122c51423003335184', 'hex'), value: 84900000000 }
   ],
   assetOpts: { assetGuid: 1552452385, precision: 8 },
-  assetOptsOptional: { updateflags: 16, prevupdateflags: 31, balance: new BN(42000000000), contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'), pubdata: Buffer.from('{"description":"new publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('{"description":"publicvalue"}') },
+  assetOptsOptional: { updateflags: 16, prevupdateflags: 31, balance: new BN(42000000000), contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'), pubdata: utils.encodeToBase64('{"d":"new publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: utils.encodeToBase64('{"d":"publicvalue"}') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
     [1552452385, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a4c6601218b885c01010008142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc217b226465736372697074696f6e223a226e6577207075626c696376616c7565227d0010001d7b226465736372697074696f6e223a227075626c696376616c7565227d1f82240000', 'hex'),
+    script: Buffer.from('6a4c6701218b885c0101000008142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc2065794a6b496a6f69626d563349484231596d787059335a686248566c496e303d00100000001c65794a6b496a6f696348566962476c6a646d46736457556966513d3d1f82240000', 'hex'),
     asset: {
-      allocation: [{assetGuid:1552452385, values:[{ n: 1, value: new BN(0) }]}],
+      allocation: [{ assetGuid: 1552452385, values: [{ n: 1, value: new BN(0) }], notarysig: Buffer.from('') }],
       precision: 8,
       contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'),
-      pubdata: Buffer.from('{"description":"new publicvalue"}'),
-      symbol: Buffer.from(''),
+      pubdata: utils.encodeToBase64('{"d":"new publicvalue"}'),
+      symbol: utils.encodeToBase64(''),
       updateflags: 16,
       prevcontract: Buffer.from(''),
-      prevpubdata: Buffer.from('{"description":"publicvalue"}'),
+      prevpubdata: utils.encodeToBase64('{"d":"publicvalue"}'),
       prevupdateflags: 31,
+      notarykeyid: Buffer.from(''),
+      prevnotarykeyid: Buffer.from(''),
       balance: new BN(42000000000),
       totalsupply: new BN(0),
       maxsupply: new BN(0)
@@ -77,9 +81,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 3,
-    script: Buffer.from('6a0a01609f776102000a0200', 'hex'),
+    script: Buffer.from('6a0b01609f776102000a020000', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(1000000000) }, { n: 2, value: new BN(0) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(1000000000) }, { n: 2, value: new BN(0) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -97,9 +101,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 3,
-    script: Buffer.from('6a0a01609f776102003b0227', 'hex'),
+    script: Buffer.from('6a0b01609f776102003b022700', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -118,9 +122,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 3,
-    script: Buffer.from('6a0901609f776101012700', 'hex'),
+    script: Buffer.from('6a0a01609f77610101270000', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 1, value: new BN(400000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(400000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -138,9 +142,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a2001609f7761020009014f00149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }], notarysig: Buffer.from('') }],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -160,9 +164,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a1f01609f7761020009014f149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a2001609f7761020009014f00149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(800000000) }], notarysig: Buffer.from('') }],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -182,9 +186,9 @@ module.exports = [{
   ]),
   expected: {
     numOutputs: 2,
-    script: Buffer.from('6a2001609f7761020009018015149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
+    script: Buffer.from('6a2101609f776102000901801500149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(100000000) }, { n: 1, value: new BN(1600000000) }], notarysig: Buffer.from('') }],
       ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex')
     }
   }
@@ -223,7 +227,7 @@ module.exports = [{
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0901609f77610100801f', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(1700000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(1700000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -244,7 +248,7 @@ module.exports = [{
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0801609f7761010059', 'hex'),
     asset: {
-      allocation: [{assetGuid:1635229536, values:[{ n: 0, value: new BN(900000000) }]}],
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(900000000) }], notarysig: Buffer.from('') }]
     }
   }
 }

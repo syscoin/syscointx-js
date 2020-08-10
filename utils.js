@@ -16,7 +16,10 @@ function sanitizeBlockbookUTXOs (utxos) {
   utxos.forEach(utxo => {
     const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
-      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, reqNotary: utxo.assetInfo.reqNotary, value: new BN(utxo.assetInfo.value) }
+      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
+      if (utxo.assetInfo.reqNotary) {
+        newUtxo.assetInfo.reqNotary = utxo.assetInfo.reqNotary
+      }
     }
     sanitizedUtxos.push(newUtxo)
   })
@@ -47,6 +50,7 @@ async function fetchBackendAsset (backendURL, assetGuid) {
     throw e
   }
 }
+
 function generateAssetGuid (input) {
   let bigNum = new BN(input.txId, 16)
   bigNum = ext.add(bigNum, new BN(input.vout))
@@ -55,11 +59,27 @@ function generateAssetGuid (input) {
   return bigNum.toNumber()
 }
 
+function encodeToBase64 (input) {
+  if (Buffer.isBuffer(input)) {
+    return Buffer.from(input.toString('base64'))
+  }
+  return Buffer.from(Buffer.from(input).toString('base64'))
+}
+
+function decodeFromBase64 (input) {
+  if (Buffer.isBuffer(input)) {
+    return input.toString()
+  }
+  return Buffer.from(input, 'base64').toString()
+}
+
 module.exports = {
   sanitizeBlockbookUTXOs: sanitizeBlockbookUTXOs,
   fetchBackendUTXOS: fetchBackendUTXOS,
   fetchBackendAsset: fetchBackendAsset,
   generateAssetGuid: generateAssetGuid,
+  encodeToBase64: encodeToBase64,
+  decodeFromBase64: decodeFromBase64,
   COIN: COIN,
   CENT: CENT,
   SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN: SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
