@@ -115,6 +115,8 @@ function optimizeOutputs (outputs, assetAllocations) {
         }
         // add assetInfo to output as its a sys change output which now becomes asset output as well (only needed for further calls which check assetInfo on outputs, not for signing or verifying the transaction)
         outputs[allocation.n].assetInfo = assetOutput.assetInfo
+        // clear change address as it should use sys change address instead (when adding outputs)
+        allocation.changeAddress = null
         return
       }
     }
@@ -266,11 +268,16 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     if (!output.address) {
       if (output.assetInfo) {
         if (assetMap.has(output.assetInfo.assetGuid)) {
-          output.address = assetMap.get(output.assetInfo.assetGuid).changeAddress
+          const changeAddress = assetMap.get(output.assetInfo.assetGuid).changeAddress
+          if (changeAddress) {
+            output.address = changeAddress
+          }
         }
-      } else {
-        output.address = sysChangeAddress
       }
+    }
+    // if we still don't have address set to sys change address
+    if (!output.address) {
+      output.address = sysChangeAddress
     }
     psbt.addOutput({
       script: output.script,
