@@ -225,9 +225,9 @@ module.exports = [{
   expected: {
     version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
     numOutputs: 3, // 3 because new opreturn will be created
-    script: Buffer.from('6a0901609f77610100801f', 'hex'),
+    script: Buffer.from('6a4b01609f77610100801f41' + Buffer.alloc(65, 0).toString('hex'), 'hex'),
     asset: {
-      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(1700000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(1700000000) }], notarysig: Buffer.alloc(65, 0) }]
     }
   }
 },
@@ -246,9 +246,9 @@ module.exports = [{
   expected: {
     version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
     numOutputs: 3, // 3 because new opreturn will be created
-    script: Buffer.from('6a0801609f7761010059', 'hex'),
+    script: Buffer.from('6a4a01609f776101005941' + Buffer.alloc(65, 0).toString('hex'), 'hex'),
     asset: {
-      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(900000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(900000000) }], notarysig: Buffer.alloc(65, 0) }]
     }
   }
 }
