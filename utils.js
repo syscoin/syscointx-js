@@ -17,9 +17,6 @@ function sanitizeBlockbookUTXOs (utxos) {
     const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
-      if (utxo.assetInfo.reqNotary) {
-        newUtxo.assetInfo.reqNotary = utxo.assetInfo.reqNotary
-      }
     }
     sanitizedUtxos.push(newUtxo)
   })

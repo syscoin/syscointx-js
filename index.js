@@ -4,6 +4,8 @@ const utils = require('./utils')
 const syscoinBufferUtils = require('./bufferutilsassets.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
+const bitcoinops = require('bitcoin-ops')
+
 function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate) {
   let txVersion = 2
   const psbt = new bitcoin.Psbt()
@@ -44,7 +46,8 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
       hash: input.txId,
       index: input.vout,
       witnessUtxo: input.witnessUtxo,
-      assetInfo: input.assetInfo
+      assetInfo: input.assetInfo,
+      path: input.path
     })
   )
   outputs.forEach(output => {
@@ -83,6 +86,7 @@ function optimizeNotarizationSigs (assetMap, assetAllocations, outputs) {
     }
   })
 }
+
 function optimizeOutputs (outputs, assetAllocations) {
   // first find all syscoin outputs that are change (should only be one)
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
@@ -122,6 +126,7 @@ function optimizeOutputs (outputs, assetAllocations) {
     }
   })
 }
+
 function optimizeFees (txVersion, inputs, outputs, feeRate) {
   const changeOutputs = outputs.filter(output => output.changeIndex !== undefined)
   if (changeOutputs.length > 1) {
@@ -148,6 +153,71 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
     console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber())
   }
 }
+
+// update all notarizations stored in signatures map into re-serialized output scripts
+function addNotarizationSignatures (txVersion, signatures, outputs) {
+  let opReturnScript = null
+  let dataScript = null
+  let opReturnIndex = 0
+  for (var i = 0; i < outputs.length; i++) {
+    const output = outputs[i]
+    if (!output.script) {
+      continue
+    }
+    // find opreturn
+    const chunks = bitcoin.script.decompile(output.script)
+    if (chunks[0] === bitcoinops.OP_RETURN) {
+      opReturnScript = chunks[1]
+      opReturnIndex = i
+    }
+  }
+
+  if (opReturnScript === null) {
+    console.log('no OPRETURN script found')
+    return
+  }
+
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
+    const mintSyscoin = syscoinBufferUtils.deserializeMintSyscoin(opReturnScript)
+    const assetAllocations = mintSyscoin.allocation.find(voutAsset => signatures.has(voutAsset.assetGuid))
+    if (assetAllocations !== undefined) {
+      assetAllocations.forEach(assetAllocation => {
+        assetAllocation.notarysig = signatures.get(assetAllocation.assetGuid)
+      })
+      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+      const mintBuffer = syscoinBufferUtils.serializeMintSyscoin(mintSyscoin)
+      const buffArr = [assetAllocationsBuffer, mintBuffer]
+      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
+    }
+  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
+    const burnToEthereum = syscoinBufferUtils.deserializeAllocationBurnToEthereum(opReturnScript)
+    const assetAllocations = burnToEthereum.allocation.find(voutAsset => signatures.has(voutAsset.assetGuid))
+    if (assetAllocations !== undefined) {
+      assetAllocations.forEach(assetAllocation => {
+        assetAllocation.notarysig = signatures.get(assetAllocation.assetGuid)
+      })
+      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+      const burnToEthereumBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(burnToEthereum)
+      const buffArr = [assetAllocationsBuffer, burnToEthereumBuffer]
+      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
+    }
+  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+    const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
+    const assetAllocations = allocation.find(voutAsset => signatures.has(voutAsset.assetGuid))
+    if (assetAllocations !== undefined) {
+      assetAllocations.forEach(assetAllocation => {
+        assetAllocation.notarysig = signatures.get(assetAllocation.assetGuid)
+      })
+      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+      const buffArr = [assetAllocationsBuffer]
+      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
+    }
+  }
+  if (dataScript !== null) {
+    outputs[opReturnIndex].script = dataScript
+  }
+}
+
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   const psbt = new bitcoin.Psbt()
   psbt.setVersion(txVersion)
@@ -259,7 +329,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
       hash: input.txId,
       index: input.vout,
       witnessUtxo: input.witnessUtxo,
-      assetInfo: input.assetInfo
+      assetInfo: input.assetInfo,
+      path: input.path
     })
   })
   outputs.forEach(output => {
@@ -393,5 +464,6 @@ module.exports = {
   assetAllocationSend: assetAllocationSend,
   assetAllocationBurn: assetAllocationBurn,
   assetAllocationMint: assetAllocationMint,
-  syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation
+  syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
+  addNotarizationSignatures: addNotarizationSignatures
 }
