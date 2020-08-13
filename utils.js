@@ -1,6 +1,5 @@
 var BN = require('bn.js')
 const ext = require('./bn-extensions')
-const axios = require('axios')
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
 const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
@@ -13,39 +12,20 @@ const COIN = 100000000
 const CENT = 1000000
 function sanitizeBlockbookUTXOs (utxos) {
   const sanitizedUtxos = []
-  utxos.forEach(utxo => {
+  utxos.utxos.forEach(utxo => {
     const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
     sanitizedUtxos.push(newUtxo)
   })
+  sanitizedUtxos.assets = new Map()
+  if (utxos.assets) {
+    utxos.assets.forEach(asset => {
+      sanitizedUtxos.assets.set(asset.assetGuid, { notarizationEndPoint: asset.notarizationEndPoint, auxFees: asset.auxFees })
+    })
+  }
   return sanitizedUtxos
-}
-async function fetchBackendUTXOS (backendURL, addressOrXpub) {
-  try {
-    const request = await axios.get(backendURL + addressOrXpub)
-    if (request && request.data) {
-      return sanitizeBlockbookUTXOs(request.data)
-    }
-    return null
-  } catch (e) {
-    console.error(e)
-    throw e
-  }
-}
-
-async function fetchBackendAsset (backendURL, assetGuid) {
-  try {
-    const request = await axios.get(backendURL + assetGuid + '?details=basic')
-    if (request && request.data && request.data.asset) {
-      return request.data.asset
-    }
-    return null
-  } catch (e) {
-    console.error(e)
-    throw e
-  }
 }
 
 function generateAssetGuid (input) {
@@ -72,8 +52,6 @@ function decodeFromBase64 (input) {
 
 module.exports = {
   sanitizeBlockbookUTXOs: sanitizeBlockbookUTXOs,
-  fetchBackendUTXOS: fetchBackendUTXOS,
-  fetchBackendAsset: fetchBackendAsset,
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
   decodeFromBase64: decodeFromBase64,

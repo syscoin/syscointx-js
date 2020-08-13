@@ -4,6 +4,7 @@
   "description": "A transaction creation library interfacing with coin selection for Syscoin.",
   "keywords": [
     "coinselect",
+    "syscointx",
     "coin",
     "unspents",
     "wallet",
@@ -28,7 +29,8 @@
     "index.js",
     "bufferutils.js",
     "bufferutilsassets.js",
-    "types.js"
+    "types.js",
+    "utils.js"
   ],
   "main": "index.js",
   "repository": {
@@ -49,9 +51,9 @@
   "dependencies": {
     "axios": "^0.19.2",
     "bitcoin-ops": "^1.4.1",
-    "bitcoinjs-lib": "^5.1.9",
+    "bitcoinjs-lib": "^5.1.10",
     "bn.js": "^5.1.2",
-    "coinselectsyscoin": "^1.0.15",
+    "coinselectsyscoin": "^1.0.18",
     "typeforce": "^1.18.0",
     "varuint-bitcoin": "^1.1.2"
   }

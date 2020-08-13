@@ -6,17 +6,17 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate) {
+function createTransaction (utxos, changeAddress, outputsArr, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   let txVersion = 2
-  const psbt = new bitcoin.Psbt()
   const inputsArr = []
   let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate)
   if (!res.inputs || !res.outputs) {
     const assetAllocations = []
-    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate)
+    console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate, utxos.assets)
     if (!res.inputs || !res.outputs) {
-      console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
+      console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
     }
     if (assetAllocations.length > 0) {
@@ -39,31 +39,14 @@ function createSyscoinTransaction (utxos, sysChangeAddress, outputsArr, feeRate)
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
 
-  psbt.setVersion(txVersion)
-
-  inputs.forEach(input =>
-    psbt.addInput({
-      hash: input.txId,
-      index: input.vout,
-      witnessUtxo: input.witnessUtxo,
-      assetInfo: input.assetInfo,
-      path: input.path
-    })
-  )
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
     if (!output.address) {
-      output.address = sysChangeAddress
+      output.address = changeAddress
     }
-    psbt.addOutput({
-      script: output.script,
-      address: output.script ? null : output.address,
-      value: output.value.toNumber(),
-      assetInfo: output.assetInfo
-    })
   })
-  return psbt
+  return { txVersion, inputs, outputs }
 }
 // update all allocations at some index or higher
 function updateAllocationIndexes (assetAllocations, index) {
@@ -73,17 +56,6 @@ function updateAllocationIndexes (assetAllocations, index) {
         output.n--
       }
     })
-  })
-}
-// remove 65 byte prefilled signature if its not needed, saves on fees
-function optimizeNotarizationSigs (assetMap, assetAllocations, outputs) {
-  const assetOutputs = outputs.filter(assetOutput => assetOutput.assetInfo && assetOutput.assetInfo.assetGuid > 0)
-  assetOutputs.forEach(output => {
-    const assetMapEntry = assetMap.get(output.assetInfo.assetGuid)
-    if (assetMapEntry && !assetMapEntry.requireNotarization) {
-      const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === output.assetInfo.assetGuid)
-      allocations.notarysig = Buffer.from('')
-    }
   })
 }
 
@@ -156,6 +128,10 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
 
 // update all notarizations stored in signatures map into re-serialized output scripts
 function addNotarizationSignatures (txVersion, signatures, outputs) {
+  // if no sigs then just return, not applicable to notarizing
+  if (signatures.size === 0) {
+    return -1
+  }
   let opReturnScript = null
   let dataScript = null
   let opReturnIndex = 0
@@ -174,7 +150,7 @@ function addNotarizationSignatures (txVersion, signatures, outputs) {
 
   if (opReturnScript === null) {
     console.log('no OPRETURN script found')
-    return
+    return -1
   }
 
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
@@ -216,16 +192,16 @@ function addNotarizationSignatures (txVersion, signatures, outputs) {
   if (dataScript !== null) {
     outputs[opReturnIndex].script = dataScript
   }
+  return opReturnIndex
 }
 
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  const psbt = new bitcoin.Psbt()
-  psbt.setVersion(txVersion)
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const isNonAssetFunded = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const isAsset = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_SEND
   const isAllocationBurn = txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded, isAsset)
+  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded, isAsset, utxos.assets)
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
@@ -272,7 +248,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   let res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
   if (!res.inputs || !res.outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate, utxos.assets)
     if (!res.inputs || !res.outputs) {
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -305,7 +281,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
     optimizeOutputs(outputs, assetAllocations)
   }
-  optimizeNotarizationSigs(assetMap, assetAllocations, outputs)
   // serialize allocations again they may have been changed in optimization
   assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   if (dataBuffer) {
@@ -324,15 +299,6 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
 
-  inputs.forEach(input => {
-    psbt.addInput({
-      hash: input.txId,
-      index: input.vout,
-      witnessUtxo: input.witnessUtxo,
-      assetInfo: input.assetInfo,
-      path: input.path
-    })
-  })
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
@@ -350,14 +316,8 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     if (!output.address) {
       output.address = sysChangeAddress
     }
-    psbt.addOutput({
-      script: output.script,
-      address: output.script ? null : output.address,
-      value: output.value.toNumber(),
-      assetInfo: output.assetInfo
-    })
   })
-  return psbt
+  return { txVersion, inputs, outputs }
 }
 function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
@@ -456,7 +416,7 @@ function syscoinBurnToAssetAllocation (utxos, assetMap, sysChangeAddress, dataAm
 }
 
 module.exports = {
-  createSyscoinTransaction: createSyscoinTransaction,
+  createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
   assetNew: assetNew,
   assetUpdate: assetUpdate,

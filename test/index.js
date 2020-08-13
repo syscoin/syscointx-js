@@ -24,128 +24,144 @@ tape.test('Assertions with tape.', (assert) => {
 })
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
-    var utxos = utils.sanitizeBlockbookUTXOs(f.utxos)
-    var txOutputs = []
+    var utxos = f.utxos
     if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-      const psbt = syscointx.assetAllocationBurn(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(assetAllocations, f.expected.asset.allocation)
+      const res = syscointx.assetAllocationBurn(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            t.same(assetAllocations, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
-      const psbt = syscointx.syscoinBurnToAssetAllocation(utxos, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(assetAllocations, f.expected.asset.allocation)
+      const res = syscointx.syscoinBurnToAssetAllocation(utxos, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            t.same(assetAllocations, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-      const psbt = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
-          t.same(asset, f.expected.asset)
-          t.same(asset.allocation, f.expected.asset.allocation)
+      const res = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
+            t.same(asset, f.expected.asset)
+            t.same(asset.allocation, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
-      const psbt = syscointx.assetUpdate({}, f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
-          t.same(asset, f.expected.asset)
-          t.same(asset.allocation, f.expected.asset.allocation)
+      const res = syscointx.assetUpdate({}, f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
+            t.same(asset, f.expected.asset)
+            t.same(asset.allocation, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
-      const psbt = syscointx.assetSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(assetAllocations, f.expected.asset.allocation)
+      const res = syscointx.assetSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            t.same(assetAllocations, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
-      const psbt = syscointx.assetAllocationMint(f.mintSyscoin, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
-          t.same(asset, f.expected.asset)
-          t.same(asset.allocation, f.expected.asset.allocation)
+      const res = syscointx.assetAllocationMint(f.mintSyscoin, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
+            t.same(asset, f.expected.asset)
+            t.same(asset.allocation, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-      const psbt = syscointx.assetAllocationBurn(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
-          t.same(asset, f.expected.asset)
-          t.same(asset.allocation, f.expected.asset.allocation)
+      const res = syscointx.assetAllocationBurn(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const asset = syscoinBufferUtils.deserializeAllocationBurnToEthereum(chunks[1])
+            t.same(asset, f.expected.asset)
+            t.same(asset.allocation, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
-      const psbt = syscointx.assetAllocationSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(assetAllocations, f.expected.asset.allocation)
+      const res = syscointx.assetAllocationSend(utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            t.same(assetAllocations, f.expected.asset.allocation)
+          }
         }
       })
     } else if (f.version === 2) {
-      const psbt = syscointx.createSyscoinTransaction(utxos, f.sysChangeAddress, f.outputs, f.feeRate)
-      txOutputs = psbt.txOutputs
-      t.same(txOutputs.length, f.expected.numOutputs)
-      t.same(psbt.version, f.expected.version)
-      txOutputs.forEach(output => {
-        // find opreturn
-        const chunks = bitcoin.script.decompile(output.script)
-        if (chunks[0] === bitcoinops.OP_RETURN) {
-          t.same(output.script, f.expected.script)
-          const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-          t.same(assetAllocations, f.expected.asset.allocation)
+      const res = syscointx.createTransaction(utxos, f.sysChangeAddress, f.outputs, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.expected.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            t.same(assetAllocations, f.expected.asset.allocation)
+          }
         }
       })
     }
