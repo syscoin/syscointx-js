@@ -24,7 +24,7 @@ tape.test('Assertions with tape.', (assert) => {
 })
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
-    var utxos = f.utxos
+    var utxos = f.utxoObj
     if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       const res = syscointx.assetAllocationBurn(f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
@@ -56,7 +56,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-      const res = syscointx.assetNew(f.assetOpts, f.assetOptsOptional, utxos, f.sysChangeAddress, f.feeRate)
+      const res = syscointx.assetNew(f.assetOpts, utxos, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -72,7 +72,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
-      const res = syscointx.assetUpdate({}, f.assetOpts, f.assetOptsOptional, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      const res = syscointx.assetUpdate(f.assetGuid, f.assetOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -80,6 +80,7 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
+            console.log('output.script ' + output.script.toString('hex'))
             t.same(output.script, f.expected.script)
             const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
             t.same(asset, f.expected.asset)

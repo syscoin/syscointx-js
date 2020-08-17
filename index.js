@@ -324,10 +324,12 @@ function assetNew (assetOpts, utxos, sysChangeAddress, feeRate) {
   const dataAmount = new BN(150 * utils.COIN)
   assetOpts.contract = assetOpts.contract || Buffer.from('')
   if (assetOpts.description) {
-    assetOpts.pubdata = utils.encodePubDataFromFields(assetOpts.description)
+    assetOpts.pubdata = Buffer.from(utils.encodePubDataFromFields(assetOpts.description))
   } else {
     assetOpts.pubdata = Buffer.from('')
   }
+  assetOpts.symbol = Buffer.from(utils.encodeToBase64(assetOpts.symbol))
+  assetOpts.description = null
   assetOpts.prevcontract = Buffer.from('')
   assetOpts.prevpubdata = Buffer.from('')
   assetOpts.notarykeyid = assetOpts.notarykeyid || Buffer.from('')
@@ -341,6 +343,7 @@ function assetNew (assetOpts, utxos, sysChangeAddress, feeRate) {
   assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || 255
   assetOpts.prevupdatecapabilityflags = 0
   assetOpts.totalsupply = ext.BN_ZERO
+
   let updateflags = utils.ASSET_UPDATE_SUPPLY | utils.ASSET_UPDATE_CAPABILITYFLAGS
   if (assetOpts.contract.length > 0) {
     updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
@@ -361,6 +364,7 @@ function assetNew (assetOpts, utxos, sysChangeAddress, feeRate) {
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
   }
   assetOpts.updateflags = updateflags
+
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
   const assetMap = new Map([
@@ -395,11 +399,11 @@ function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, f
   let updateflags = 0
   // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
   if (assetObj.contract !== assetOpts.contract) {
-    assetOpts.prevcontract = assetObj.contract
+    assetOpts.prevcontract = assetObj.contract || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
   }
   if (assetObj.pubdata !== assetOpts.pubdata) {
-    assetOpts.prevpubdata = assetObj.pubdata
+    assetOpts.prevpubdata = assetObj.pubdata || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_DATA
   }
   if (assetObj.updatecapabilityflags !== assetOpts.updatecapabilityflags) {
@@ -407,19 +411,19 @@ function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, f
     updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
   }
   if (assetObj.notarykeyid !== assetOpts.notarykeyid) {
-    assetOpts.prevnotarykeyid = assetObj.notarykeyid
+    assetOpts.prevnotarykeyid = assetObj.notarykeyid || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
   }
   if (assetObj.notarydetails !== assetOpts.notarydetails) {
-    assetOpts.prevnotarydetails = assetObj.notarydetails
+    assetOpts.prevnotarydetails = assetObj.notarydetails || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
   if (assetObj.auxfeekeyid !== assetOpts.auxfeekeyid) {
-    assetOpts.prevauxfeekeyid = assetObj.auxfeekeyid
+    assetOpts.prevauxfeekeyid = assetObj.auxfeekeyid || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
   }
   if (assetObj.auxfeedetails !== assetOpts.auxfeedetails) {
-    assetOpts.prevauxfeedetails = assetObj.auxfeedetails
+    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
   }
   if (!assetOpts.balance.eq(ext.BN_ZERO)) {
@@ -428,7 +432,6 @@ function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, f
     updateflags = updateflags | utils.ASSET_UPDATE_SUPPLY
   }
   assetOpts.updateflags = updateflags
-
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

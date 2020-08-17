@@ -10,6 +10,14 @@ const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM = 134
 const SYSCOIN_TX_VERSION_ALLOCATION_SEND = 135
 const COIN = 100000000
 const CENT = 1000000
+const ASSET_UPDATE_DATA = 1 // can you update public data field?
+const ASSET_UPDATE_CONTRACT = 2 // can you update smart contract?
+const ASSET_UPDATE_SUPPLY = 4 // can you update supply?
+const ASSET_UPDATE_NOTARY_KEY = 8 // can you update notary?
+const ASSET_UPDATE_NOTARY_DETAILS = 16 // can you update notary details?
+const ASSET_UPDATE_AUXFEE_KEY = 32 // can you update aux fees?
+const ASSET_UPDATE_AUXFEE_DETAILS = 64 // can you update aux fees details?
+const ASSET_UPDATE_CAPABILITYFLAGS = 128 // can you update capability flags?
 
 // Amount compression:
 // * If the amount is 0, output 0
@@ -79,37 +87,32 @@ function decompressAmount (x) {
 }
 
 function encodeToBase64 (input) {
-  if (Buffer.isBuffer(input)) {
-    return Buffer.from(input.toString('base64'))
-  }
-  return Buffer.from(Buffer.from(input).toString('base64'))
+  return Buffer.from(input).toString('base64')
 }
 
 function decodeFromBase64 (input) {
-  if (Buffer.isBuffer(input)) {
-    return input.toString()
-  }
   return Buffer.from(input, 'base64').toString()
 }
 
-function sanitizeBlockbookUTXOs (utxos) {
+function sanitizeBlockbookUTXOs (utxoObj) {
   const sanitizedUtxos = []
-  utxos.utxos.forEach(utxo => {
+  utxoObj.utxos.forEach(utxo => {
     const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
     sanitizedUtxos.push(newUtxo)
   })
-  sanitizedUtxos.assets = new Map()
-  if (utxos.assets) {
-    utxos.assets.forEach(asset => {
+  if (utxoObj.assets) {
+    sanitizedUtxos.assets = new Map()
+    utxoObj.assets.forEach(asset => {
       const assetObj = {}
       if (asset.contract) {
         assetObj.contract = Buffer.from(asset.contract)
       }
-      assetObj.symbol = Buffer.from(asset.symbol)
-      assetObj.pubdata = Buffer.from(asset.pubData)
+      if (asset.pubData) {
+        assetObj.pubdata = Buffer.from(asset.pubData)
+      }
       if (asset.notaryKeyID) {
         assetObj.notarykeyid = Buffer.from(asset.notaryKeyID)
       }
@@ -132,14 +135,18 @@ function sanitizeBlockbookUTXOs (utxos) {
           assetObj.auxfeedetails.auxfees.push(auxfeeObj)
         })
       }
+      if (asset.updateCapabilityFlags) {
+        assetObj.updatecapabilityflags = new BN(asset.updateCapabilityFlags)
+      }
+      assetObj.symbol = Buffer.from(asset.symbol)
       assetObj.balance = new BN(asset.balance)
       assetObj.totalsupply = new BN(asset.totalSupply)
       assetObj.maxsupply = new BN(asset.maxSupply)
-      assetObj.precision = new BN(asset.decimal)
-      assetObj.updatecapabilitiesflags = new BN(asset.updateCapabilitiesFlags)
-      sanitizedUtxos.assets.set(asset.assetGuid, asset)
+      assetObj.precision = new BN(asset.decimals)
+      sanitizedUtxos.assets.set(asset.assetGuid, assetObj)
     })
   }
+
   return sanitizedUtxos
 }
 
@@ -156,7 +163,6 @@ function decodeFieldsFromPubData (jsonData) {
   if (jsonData.desc) {
     description = jsonData.desc
   }
-
   return { description }
 }
 
@@ -165,7 +171,7 @@ function encodePubDataFromFields (description) {
   if (description) {
     obj.desc = encodeToBase64(description)
   }
-  return JSON.stringify(obj)
+  return Buffer.from(JSON.stringify(obj))
 }
 
 module.exports = {
@@ -186,5 +192,14 @@ module.exports = {
   SYSCOIN_TX_VERSION_ASSET_SEND: SYSCOIN_TX_VERSION_ASSET_SEND,
   SYSCOIN_TX_VERSION_ALLOCATION_MINT: SYSCOIN_TX_VERSION_ALLOCATION_MINT,
   SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM: SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
-  SYSCOIN_TX_VERSION_ALLOCATION_SEND: SYSCOIN_TX_VERSION_ALLOCATION_SEND
+  SYSCOIN_TX_VERSION_ALLOCATION_SEND: SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  ASSET_UPDATE_DATA: ASSET_UPDATE_DATA,
+  ASSET_UPDATE_CONTRACT: ASSET_UPDATE_CONTRACT,
+  ASSET_UPDATE_SUPPLY: ASSET_UPDATE_SUPPLY,
+  ASSET_UPDATE_NOTARY_KEY: ASSET_UPDATE_NOTARY_KEY,
+  ASSET_UPDATE_NOTARY_DETAILS: ASSET_UPDATE_NOTARY_DETAILS,
+  ASSET_UPDATE_AUXFEE_KEY: ASSET_UPDATE_AUXFEE_KEY,
+  ASSET_UPDATE_AUXFEE_DETAILS: ASSET_UPDATE_AUXFEE_DETAILS,
+  ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS
+
 }

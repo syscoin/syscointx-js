@@ -270,15 +270,15 @@ function deserializeAsset (buffer) {
   asset.symbol = bufferReader.readVarSlice()
   asset.updateflags = bufferReader.readUInt8()
 
-  if (asset.updatemask & utils.ASSET_UPDATE_CONTRACT) {
+  if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
     asset.contract = bufferReader.readVarSlice()
     asset.prevcontract = bufferReader.readVarSlice()
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_DATA) {
+  if (asset.updateflags & utils.ASSET_UPDATE_DATA) {
     asset.pubdata = bufferReader.readVarSlice()
     asset.prevpubdata = bufferReader.readVarSlice()
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_SUPPLY) {
+  if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
     var valueSat = readUint(bufferReader)
     asset.balance = utils.decompressAmount(valueSat)
 
@@ -288,23 +288,23 @@ function deserializeAsset (buffer) {
     valueSat = readUint(bufferReader)
     asset.maxsupply = utils.decompressAmount(valueSat)
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_NOTARY_KEY) {
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
     asset.notarykeyid = bufferReader.readVarSlice()
     asset.prevnotarykeyid = bufferReader.readVarSlice()
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_NOTARY_DETAILS) {
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_DETAILS) {
     asset.notarydetails = deserializeNotaryDetails(bufferReader)
     asset.prevnotarydetails = deserializeNotaryDetails(bufferReader)
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_AUXFEE_KEY) {
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
     asset.auxfeekeyid = bufferReader.readVarSlice()
     asset.prevauxfeekeyid = bufferReader.readVarSlice()
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
     asset.auxfeedetails = deserializeAuxFeeDetails(bufferReader)
     asset.prevauxdetails = deserializeAuxFeeDetails(bufferReader)
   }
-  if (asset.updatemask & utils.ASSET_UPDATE_CAPABILITYFLAGS) {
+  if (asset.updateflags & utils.ASSET_UPDATE_CAPABILITYFLAGS) {
     asset.updatecapabilityflags = bufferReader.readUInt8()
     asset.prevupdatecapabilityflags = bufferReader.readUInt8()
   }
