@@ -9,8 +9,8 @@ const syscoinBufferUtils = require('../bufferutilsassets.js')
 const BN = require('bn.js')
 // test compress/uncompress
 function testPair (dec, enc) {
-  return syscoinBufferUtils.compressAmount(dec).eq(enc) &&
-  syscoinBufferUtils.decompressAmount(enc).eq(dec)
+  return utils.compressAmount(dec).eq(enc) &&
+  utils.decompressAmount(enc).eq(dec)
 }
 tape.test('Assertions with tape.', (assert) => {
   assert.equal(testPair(new BN(0), new BN(0x0)), true)

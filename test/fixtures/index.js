@@ -8,13 +8,9 @@ module.exports = [{
   utxos: {
     utxos: [
       { txId: 'add9bf0783d1e18bccf016e5c779be5cd390d8906f7b2ef4afa28c775c888b21', vout: 0, script: Buffer.from('001495e1cb724b74c32526209265c9f96a4e8ed256db', 'hex'), value: 100000000000 }
-    ],
-    assets: [
-      { assetGuid: 0, notarizationEndPoint: '', auxFees: {} }
     ]
   },
-  assetOpts: { precision: 8, symbol: utils.encodeToBase64('CAT'), updateflags: 31, prevupdateflags: 31, balance: new BN(10000000000), maxsupply: new BN(100000000000) },
-  assetOptsOptional: { contract: Buffer.from(''), pubdata: utils.encodeToBase64('{"d":"publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: Buffer.from('') },
+  assetOpts: { precision: 8, symbol: utils.encodeToBase64('CAT'), updateflags: 255, balance: new BN(10000000000), maxsupply: new BN(100000000000), description: 'publicvalue' },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   expected: {
     numOutputs: 2,
@@ -22,15 +18,21 @@ module.exports = [{
     asset: {
       allocation: [{ assetGuid: 1552452385, values: [{ n: 1, value: new BN(0) }], notarysig: Buffer.from('') }],
       precision: 8,
-      contract: Buffer.from(''),
-      pubdata: utils.encodeToBase64('{"d":"publicvalue"}'),
+      contract: null,
+      pubdata: '{"desc":' + utils.encodeToBase64('publicvalue') + '}',
       symbol: utils.encodeToBase64('CAT'),
-      updateflags: 31,
-      prevcontract: Buffer.from(''),
+      updateflags: 255,
+      prevcontract: null,
       prevpubdata: Buffer.from(''),
-      prevupdateflags: 31,
-      notarykeyid: Buffer.from(''),
-      prevnotarykeyid: Buffer.from(''),
+      prevupdateflags: 0,
+      notarykeyid: null,
+      prevnotarykeyid: null,
+      notarydetails: null,
+      prevnotarydetails: null,
+      auxfeekeyid: null,
+      prevauxfeekeyid: null,
+      auxfeedetails: null,
+      prevauxfeedetails: null,
       balance: new BN(10000000000),
       totalsupply: new BN(0),
       maxsupply: new BN(100000000000)
@@ -47,11 +49,18 @@ module.exports = [{
       { txId: 'd31783dcbb96cf104970a5fd427f3c9f91921233478f80d8b63d80b2089ea15c', vout: 2, script: Buffer.from('001493b69b7e29c5869a50a41c122c51423003335184', 'hex'), value: 84900000000 }
     ],
     assets: [
-      { assetGuid: 1552452385, notarizationEndPoint: '', auxFees: {} }
+      {
+        decimals: 8,
+        pubData: '{"desc":' + utils.encodeToBase64('publicvalue') + '}',
+        symbol: utils.encodeToBase64('CAT'),
+        updateCapabilityFlags: 255,
+        balance: new BN(10000000000),
+        totalSupply: new BN(0),
+        maxSupply: new BN(100000000000)
+      }
     ]
   },
-  assetOpts: { assetGuid: 1552452385, precision: 8 },
-  assetOptsOptional: { updateflags: 16, prevupdateflags: 31, balance: new BN(42000000000), contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'), pubdata: utils.encodeToBase64('{"d":"new publicvalue"}'), prevcontract: Buffer.from(''), prevpubdata: utils.encodeToBase64('{"d":"publicvalue"}') },
+  assetOpts: { assetGuid: 1552452385, updateflags: 127, balance: new BN(42000000000), contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'), description: 'new publicvalue' },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
     [1552452385, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
@@ -63,14 +72,20 @@ module.exports = [{
       allocation: [{ assetGuid: 1552452385, values: [{ n: 1, value: new BN(0) }], notarysig: Buffer.from('') }],
       precision: 8,
       contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'),
-      pubdata: utils.encodeToBase64('{"d":"new publicvalue"}'),
-      symbol: utils.encodeToBase64(''),
-      updateflags: 16,
+      pubdata: '{"desc":' + utils.encodeToBase64('new publicvalue') + '}',
+      symbol: Buffer.from(''),
+      prevpubdata: '{"desc":' + utils.encodeToBase64('publicvalue') + '}',
+      updatecapabilityflags: 127,
+      prevupdatecapabilityflags: 255,
+      notarykeyid: null,
+      prevnotarykeyid: null,
+      notarydetails: null,
+      prevnotarydetails: null,
+      auxfeekeyid: null,
+      prevauxfeekeyid: null,
+      auxfeedetails: null,
+      prevauxfeedetails: null,
       prevcontract: Buffer.from(''),
-      prevpubdata: utils.encodeToBase64('{"d":"publicvalue"}'),
-      prevupdateflags: 31,
-      notarykeyid: Buffer.from(''),
-      prevnotarykeyid: Buffer.from(''),
       balance: new BN(42000000000),
       totalsupply: new BN(0),
       maxsupply: new BN(0)

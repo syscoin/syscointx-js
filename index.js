@@ -196,7 +196,6 @@ function addNotarizationSignatures (txVersion, signatures, outputs) {
 }
 
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const isNonAssetFunded = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
     txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const isAsset = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_SEND
@@ -319,16 +318,49 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   })
   return { txVersion, inputs, outputs }
 }
-function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRate) {
+function assetNew (assetOpts, utxos, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new BN(150 * utils.COIN)
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || Buffer.from('')
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
-  assetOpts.notarykeyid = assetOpts.notarykeyid || assetOptsOptional.notarykeyid || Buffer.from('')
-  assetOpts.prevnotarykeyid = assetOpts.prevnotarykeyid || assetOptsOptional.prevnotarykeyid || Buffer.from('')
+  assetOpts.contract = assetOpts.contract || Buffer.from('')
+  if (assetOpts.description) {
+    assetOpts.pubdata = utils.encodePubDataFromFields(assetOpts.description)
+  } else {
+    assetOpts.pubdata = Buffer.from('')
+  }
+  assetOpts.prevcontract = Buffer.from('')
+  assetOpts.prevpubdata = Buffer.from('')
+  assetOpts.notarykeyid = assetOpts.notarykeyid || Buffer.from('')
+  assetOpts.prevnotarykeyid = Buffer.from('')
+  assetOpts.notarydetails = assetOpts.notarydetails || Buffer.from('')
+  assetOpts.prevnotarydetails = Buffer.from('')
+  assetOpts.auxfeekeyid = assetOpts.auxfeekeyid || Buffer.from('')
+  assetOpts.prevauxfeekeyid = Buffer.from('')
+  assetOpts.auxfeedetails = assetOpts.auxfeedetails || Buffer.from('')
+  assetOpts.prevauxfeedetails = Buffer.from('')
+  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || 255
+  assetOpts.prevupdatecapabilityflags = 0
   assetOpts.totalsupply = ext.BN_ZERO
+  let updateflags = utils.ASSET_UPDATE_SUPPLY | utils.ASSET_UPDATE_CAPABILITYFLAGS
+  if (assetOpts.contract.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
+  }
+  if (assetOpts.pubdata.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_DATA
+  }
+  if (assetOpts.notarykeyid.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
+  }
+  if (assetOpts.notarydetails.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
+  }
+  if (assetOpts.auxfeekeyid.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
+  }
+  if (assetOpts.auxfeedetails.length > 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
+  }
+  assetOpts.updateflags = updateflags
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
   const assetMap = new Map([
@@ -337,46 +369,72 @@ function assetNew (assetOpts, assetOptsOptional, utxos, sysChangeAddress, feeRat
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetUpdate (assetObj, assetOpts, assetOptsOptional, utxos, assetMap, sysChangeAddress, feeRate) {
+function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
+  if (!utxos.assets.has(assetGuid)) {
+    console.log('Asset input found in UTXO set passed in')
+    return null
+  }
+  const assetObj = utxos.assets.get(assetGuid)
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_UPDATE
   const dataAmount = ext.BN_ZERO
-  assetOpts.balance = assetOpts.balance || assetOptsOptional.balance || ext.BN_ZERO
-
-  assetOpts.contract = assetOpts.contract || assetOptsOptional.contract || Buffer.from('')
-  assetOpts.prevcontract = assetOpts.prevcontract || assetOptsOptional.prevcontract || Buffer.from('')
-  assetOpts.notarykeyid = assetOpts.notarykeyid || assetOptsOptional.notarykeyid || Buffer.from('')
-  assetOpts.prevnotarykeyid = assetOpts.prevnotarykeyid || assetOptsOptional.prevnotarykeyid || Buffer.from('')
-  // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
-  if (assetObj.contract === assetOpts.contract) {
-    assetOpts.contract = Buffer.from('')
-    assetOpts.prevcontract = Buffer.from('')
-  }
-  assetOpts.pubdata = assetOpts.pubdata || assetOptsOptional.pubdata || Buffer.from('')
-  assetOpts.prevpubdata = assetOpts.prevpubdata || assetOptsOptional.prevpubdata || Buffer.from('')
-  if (assetObj.pubdata === assetOpts.pubdata) {
-    assetOpts.pubdata = Buffer.from('')
-    assetOpts.prevpubdata = Buffer.from('')
-  }
-
-  assetOpts.updateflags = assetOpts.updateflags || assetOptsOptional.updateflags || 31
-  assetOpts.prevupdateflags = assetOpts.prevupdateflags || assetOptsOptional.prevupdateflags || 31
-  if (assetObj.updateflags === assetOpts.updateflags) {
-    assetOpts.updateflags = 31
-    assetOpts.prevupdateflags = 31
-  }
-  if (assetObj.notarykeyid === assetOpts.notarykeyid) {
-    assetOpts.notarykeyid = Buffer.from('')
-    assetOpts.prevnotarykeyid = Buffer.from('')
-  }
-  // these are inited to 0 they are included on wire as empty, also used to ser/der into the asset db in core
-  assetOpts.totalsupply = ext.BN_ZERO
-  assetOpts.maxsupply = ext.BN_ZERO
+  assetOpts.precision = assetObj.precision
   assetOpts.symbol = Buffer.from('')
+  assetOpts.balance = assetOpts.balance || ext.BN_ZERO
+  assetOpts.contract = assetOpts.contract || assetObj.contract
+  if (assetOpts.description) {
+    assetOpts.pubdata = utils.encodePubDataFromFields(assetOpts.description)
+  } else {
+    assetOpts.pubdata = assetObj.pubdata
+  }
+  assetOpts.notarykeyid = assetOpts.notarykeyid || assetObj.notarykeyid
+  assetOpts.notarydetails = assetOpts.notarydetails || assetObj.notarydetails
+  assetOpts.auxfeekeyid = assetOpts.auxfeekeyid || assetObj.auxfeekeyid
+  assetOpts.auxfeedetails = assetOpts.auxfeedetails || assetObj.auxfeedetails
+  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || assetObj.updatecapabilityflags
+  let updateflags = 0
+  // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
+  if (assetObj.contract !== assetOpts.contract) {
+    assetOpts.prevcontract = assetObj.contract
+    updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
+  }
+  if (assetObj.pubdata !== assetOpts.pubdata) {
+    assetOpts.prevpubdata = assetObj.pubdata
+    updateflags = updateflags | utils.ASSET_UPDATE_DATA
+  }
+  if (assetObj.updatecapabilityflags !== assetOpts.updatecapabilityflags) {
+    assetOpts.prevupdatecapabilityflags = assetObj.updatecapabilityflags
+    updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
+  }
+  if (assetObj.notarykeyid !== assetOpts.notarykeyid) {
+    assetOpts.prevnotarykeyid = assetObj.notarykeyid
+    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
+  }
+  if (assetObj.notarydetails !== assetOpts.notarydetails) {
+    assetOpts.prevnotarydetails = assetObj.notarydetails
+    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
+  }
+  if (assetObj.auxfeekeyid !== assetOpts.auxfeekeyid) {
+    assetOpts.prevauxfeekeyid = assetObj.auxfeekeyid
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
+  }
+  if (assetObj.auxfeedetails !== assetOpts.auxfeedetails) {
+    assetOpts.prevauxfeedetails = assetObj.auxfeedetails
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
+  }
+  if (!assetOpts.balance.eq(ext.BN_ZERO)) {
+    assetOpts.totalsupply = ext.BN_ZERO
+    assetOpts.maxsupply = ext.BN_ZERO
+    updateflags = updateflags | utils.ASSET_UPDATE_SUPPLY
+  }
+  assetOpts.updateflags = updateflags
+
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
 function assetSend (utxos, assetMap, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
@@ -384,6 +442,7 @@ function assetSend (utxos, assetMap, sysChangeAddress, feeRate) {
 }
 
 function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
@@ -391,6 +450,7 @@ function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate) {
 }
 
 function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   let txVersion = 0
   if (syscoinBurnToEthereum.ethaddress.length > 0) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
@@ -403,6 +463,7 @@ function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeA
 }
 
 function assetAllocationMint (mintSyscoin, utxos, assetMap, sysChangeAddress, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(mintSyscoin)
@@ -410,6 +471,7 @@ function assetAllocationMint (mintSyscoin, utxos, assetMap, sysChangeAddress, fe
 }
 
 function syscoinBurnToAssetAllocation (utxos, assetMap, sysChangeAddress, dataAmount, feeRate) {
+  utxos = utils.sanitizeBlockbookUTXOs(utxos)
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
   return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)

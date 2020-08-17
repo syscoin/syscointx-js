@@ -2,73 +2,7 @@ const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const bufferUtils = require('./bufferutils')
 const varuint = require('varuint-bitcoin')
-// Amount compression:
-// * If the amount is 0, output 0
-// * first, divide the amount (in base units) by the largest power of 10 possible; call the exponent e (e is max 9)
-// * if e<9, the last digit of the resulting number cannot be 0; store it as d, and drop it (divide by 10)
-//   * call the result n
-//   * output 1 + 10*(9*n + d - 1) + e
-// * if e==9, we only know the resulting number is not zero, so output 1 + 10*(n - 1) + 9
-// (this is decodable, as d is in [1-9] and e is in [0-9])
-
-function compressAmount (n) {
-  if (n.isZero()) {
-    return n
-  }
-  let e = 0
-  const tenBN = new BN(10)
-  const nineBN = new BN(9)
-  while ((ext.eq(ext.mod(n, tenBN), ext.BN_ZERO)) && e < 9) {
-    n = ext.div(n, tenBN)
-    e++
-  }
-  if (e < 9) {
-    const d = ext.mod(n, tenBN).toNumber()
-    n = ext.div(n, tenBN)
-    let retVal = ext.mul(n, nineBN)
-    retVal = ext.add(retVal, new BN(d))
-    retVal = ext.sub(retVal, ext.BN_ONE)
-    retVal = ext.mul(retVal, tenBN)
-    retVal = ext.add(retVal, ext.BN_ONE)
-    retVal = ext.add(retVal, new BN(e))
-    return retVal
-  } else {
-    let retVal = ext.sub(n, ext.BN_ONE)
-    retVal = ext.mul(retVal, tenBN)
-    retVal = ext.add(retVal, ext.BN_ONE)
-    retVal = ext.add(retVal, nineBN)
-    return retVal
-  }
-}
-
-function decompressAmount (x) {
-  // x = 0  OR  x = 1+10*(9*n + d - 1) + e  OR  x = 1+10*(n - 1) + 9
-  if (x.isZero()) {
-    return x
-  }
-  const tenBN = new BN(10)
-  const nineBN = new BN(9)
-  x = ext.sub(x, ext.BN_ONE)
-  // x = 10*(9*n + d - 1) + e
-  let e = ext.mod(x, tenBN).toNumber()
-  x = ext.div(x, tenBN)
-  let n = ext.BN_ZERO
-  if (e < 9) {
-    // x = 9*n + d - 1
-    const d = ext.add(ext.mod(x, nineBN), ext.BN_ONE)
-    x = ext.div(x, nineBN)
-    // x = n
-    n = ext.add(ext.mul(x, tenBN), d)
-  } else {
-    n = ext.add(x, ext.BN_ONE)
-  }
-  while (e > 0) {
-    n = ext.mul(n, tenBN)
-    e--
-  }
-  return n
-}
-
+const utils = require('./utils.js')
 function putUint (bufferWriter, n) {
   const tmp = []
   let len = 0
@@ -103,20 +37,65 @@ function readUint (bufferReader) {
   }
 }
 
+function byteLengthAuxFee (auxfee) {
+  let len = 8 // bound
+  len += varuint.encodingLength(auxfee.percent.length) + auxfee.percent.length // string percentage
+  return len
+}
+
+function byteLengthAuxFeeDetails (auxfeedetails) {
+  let len = 0
+  auxfeedetails.auxfees.forEach(auxfee => {
+    len += byteLengthAuxFee(auxfee)
+  })
+  return len
+}
+
+function byteLengthNotaryDetails (notary) {
+  let len = varuint.encodingLength(notary.endpoint.length) + notary.endpoint.length
+  len += 1 // bEnableInstantTransfers
+  len += 1 // bRequireHD
+  return len
+}
+
 function byteLengthAsset (asset) {
   let len = 1 // precision
-  len += varuint.encodingLength(asset.contract.length) + asset.contract.length
-  len += varuint.encodingLength(asset.pubdata.length) + asset.pubdata.length
   len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
   len += 1 // updateflags
-  len += varuint.encodingLength(asset.notarykeyid.length) + asset.notarykeyid.length
-  len += varuint.encodingLength(asset.prevnotarykeyid.length) + asset.prevnotarykeyid.length
-  len += varuint.encodingLength(asset.prevcontract.length) + asset.prevcontract.length
-  len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
-  len += 1 // prevupdateflags
-  len += 8 // balance
-  len += 1 // total supply (should be 1 for wire always)
-  len += 8 // max supply
+  if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
+    len += varuint.encodingLength(asset.contract.length) + asset.contract.length
+    len += varuint.encodingLength(asset.prevcontract.length) + asset.prevcontract.length
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_DATA) {
+    len += varuint.encodingLength(asset.pubdata.length) + asset.pubdata.length
+    len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
+    len += 8 // balance
+    len += 1 // total supply (should be 1 for wire always)
+    len += 8 // max supply
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
+    len += varuint.encodingLength(asset.notarykeyid.length) + asset.notarykeyid.length
+    len += varuint.encodingLength(asset.prevnotarykeyid.length) + asset.prevnotarykeyid.length
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_DETAILS) {
+    len += byteLengthNotaryDetails(asset.notarydetails)
+    len += byteLengthNotaryDetails(asset.prevotarydetails)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
+    len += varuint.encodingLength(asset.auxfeekeyid.length) + asset.auxfeekeyid.length
+    len += varuint.encodingLength(asset.prevauxfeekeyid.length) + asset.prevauxfeekeyid.length
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+    // for auxfeedetails and prevauxfeedetails
+    len += byteLengthAuxFeeDetails(asset.auxfeedetails)
+    len += byteLengthAuxFeeDetails(asset.prevauxfeedetails)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_CAPABILITYFLAGS) {
+    len += 1 // updatecapabilityflags
+    len += 1 // prevupdatecapabilityflags
+  }
   return len
 }
 
@@ -161,22 +140,64 @@ function byteLengthSyscoinBurnToEthereum (syscoinBurnToEtereum) {
   return varuint.encodingLength(syscoinBurnToEtereum.ethaddress.length) + syscoinBurnToEtereum.ethaddress.length
 }
 
+function serializeNotaryDetails (notaryDetails, bufferWriter) {
+  bufferWriter.writeVarSlice(notaryDetails.endpoint)
+  bufferWriter.writeUInt8(notaryDetails.instanttransfers)
+  bufferWriter.writeUInt8(notaryDetails.hdrequired)
+}
+
+function serializeAuxFee (auxFee, bufferWriter) {
+  putUint(bufferWriter, utils.compressAmount(auxFee.bound))
+  bufferWriter.writeVarSlice(auxFee.percent)
+}
+
+function serializeAuxFeeDetails (auxFeeDetails, bufferWriter) {
+  auxFeeDetails.auxfees.forEach(auxfee => {
+    serializeAuxFee(auxfee, bufferWriter)
+  })
+}
+
 function serializeAsset (asset) {
   const buffer = Buffer.allocUnsafe(byteLengthAsset(asset))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
   bufferWriter.writeUInt8(asset.precision)
-  bufferWriter.writeVarSlice(asset.contract)
-  bufferWriter.writeVarSlice(asset.pubdata)
   bufferWriter.writeVarSlice(asset.symbol)
   bufferWriter.writeUInt8(asset.updateflags)
-  bufferWriter.writeVarSlice(asset.notarykeyid)
-  bufferWriter.writeVarSlice(asset.prevnotarykeyid)
-  bufferWriter.writeVarSlice(asset.prevcontract)
-  bufferWriter.writeVarSlice(asset.prevpubdata)
-  bufferWriter.writeUInt8(asset.prevupdateflags)
-  putUint(bufferWriter, compressAmount(asset.balance))
-  putUint(bufferWriter, compressAmount(asset.totalsupply))
-  putUint(bufferWriter, compressAmount(asset.maxsupply))
+
+  if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
+    bufferWriter.writeVarSlice(asset.contract)
+    bufferWriter.writeVarSlice(asset.prevcontract)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_DATA) {
+    bufferWriter.writeVarSlice(asset.pubdata)
+    bufferWriter.writeVarSlice(asset.prevpubdata)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
+    putUint(bufferWriter, utils.compressAmount(asset.balance))
+    putUint(bufferWriter, utils.compressAmount(asset.totalsupply))
+    putUint(bufferWriter, utils.compressAmount(asset.maxsupply))
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
+    bufferWriter.writeVarSlice(asset.notarykeyid)
+    bufferWriter.writeVarSlice(asset.prevnotarykeyid)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_DETAILS) {
+    serializeNotaryDetails(asset.notarydetails, bufferWriter)
+    serializeNotaryDetails(asset.prevnotarydetails, bufferWriter)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
+    bufferWriter.writeVarSlice(asset.auxfeekeyid)
+    bufferWriter.writeVarSlice(asset.preauxfeekeyid)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+    serializeAuxFeeDetails(asset.auxfeedetails, bufferWriter)
+    serializeAuxFeeDetails(asset.prevauxfeedetails, bufferWriter)
+  }
+  if (asset.updateflags & utils.ASSET_UPDATE_CAPABILITYFLAGS) {
+    bufferWriter.writeUInt8(asset.updatecapabilityflags)
+    bufferWriter.writeUInt8(asset.prevupdatecapabilityflags)
+  }
+
   // need to slice because of compress varInt functionality which is not accounted for in byteLengthAsset
   return buffer.slice(0, bufferWriter.offset)
 }
@@ -184,7 +205,7 @@ function serializeAsset (asset) {
 function deserializeAssetVoutValue (bufferReader) {
   const n = bufferReader.readVarInt()
   const valueSat = readUint(bufferReader)
-  const value = decompressAmount(valueSat)
+  const value = utils.decompressAmount(valueSat)
   return { n: n, value: value }
 }
 
@@ -210,35 +231,89 @@ function deserializeAssetAllocations (buffer, bufferReaderIn) {
   return assetAllocations
 }
 
+function deserializeNotaryDetails (bufferReaderIn) {
+  const bufferReader = bufferReaderIn
+  const notarydetails = {} // TODO ts this
+  notarydetails.endpoint = bufferReader.readVarSlice()
+  notarydetails.instanttransfers = bufferReader.readUInt8()
+  notarydetails.requirehd = bufferReader.readUInt8()
+  return notarydetails
+}
+
+function deserializeAuxFee (bufferReaderIn) {
+  const bufferReader = bufferReaderIn
+  const auxFee = {} // TODO ts this
+  var valueSat = readUint(bufferReader)
+  auxFee.bound = utils.decompressAmount(valueSat)
+  auxFee.percent = bufferReader.readVarSlice()
+  return auxFee
+}
+
+function deserializeAuxFeeDetails (bufferReaderIn) {
+  const bufferReader = bufferReaderIn
+  const auxFeeDetails = {} // TODO ts this
+  auxFeeDetails.auxfees = []
+  const numAuxFees = bufferReader.readVarInt()
+  for (var i = 0; i < numAuxFees; i++) {
+    const auxfee = deserializeAuxFee(bufferReader)
+    auxFeeDetails.auxfees.push(auxfee)
+  }
+  return auxFeeDetails
+}
+
 function deserializeAsset (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const asset = {} // TODO ts this
 
   asset.allocation = deserializeAssetAllocations(null, bufferReader)
   asset.precision = bufferReader.readUInt8()
-  asset.contract = bufferReader.readVarSlice()
-  asset.pubdata = bufferReader.readVarSlice()
   asset.symbol = bufferReader.readVarSlice()
   asset.updateflags = bufferReader.readUInt8()
-  asset.notarykeyid = bufferReader.readVarSlice()
-  asset.prevnotarykeyid = bufferReader.readVarSlice()
-  asset.prevcontract = bufferReader.readVarSlice()
-  asset.prevpubdata = bufferReader.readVarSlice()
-  asset.prevupdateflags = bufferReader.readUInt8()
-  var valueSat = readUint(bufferReader)
-  asset.balance = decompressAmount(valueSat)
 
-  valueSat = readUint(bufferReader)
-  asset.totalsupply = decompressAmount(valueSat)
+  if (asset.updatemask & utils.ASSET_UPDATE_CONTRACT) {
+    asset.contract = bufferReader.readVarSlice()
+    asset.prevcontract = bufferReader.readVarSlice()
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_DATA) {
+    asset.pubdata = bufferReader.readVarSlice()
+    asset.prevpubdata = bufferReader.readVarSlice()
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_SUPPLY) {
+    var valueSat = readUint(bufferReader)
+    asset.balance = utils.decompressAmount(valueSat)
 
-  valueSat = readUint(bufferReader)
-  asset.maxsupply = decompressAmount(valueSat)
+    valueSat = readUint(bufferReader)
+    asset.totalsupply = utils.decompressAmount(valueSat)
+
+    valueSat = readUint(bufferReader)
+    asset.maxsupply = utils.decompressAmount(valueSat)
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_NOTARY_KEY) {
+    asset.notarykeyid = bufferReader.readVarSlice()
+    asset.prevnotarykeyid = bufferReader.readVarSlice()
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_NOTARY_DETAILS) {
+    asset.notarydetails = deserializeNotaryDetails(bufferReader)
+    asset.prevnotarydetails = deserializeNotaryDetails(bufferReader)
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_AUXFEE_KEY) {
+    asset.auxfeekeyid = bufferReader.readVarSlice()
+    asset.prevauxfeekeyid = bufferReader.readVarSlice()
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+    asset.auxfeedetails = deserializeAuxFeeDetails(bufferReader)
+    asset.prevauxdetails = deserializeAuxFeeDetails(bufferReader)
+  }
+  if (asset.updatemask & utils.ASSET_UPDATE_CAPABILITYFLAGS) {
+    asset.updatecapabilityflags = bufferReader.readUInt8()
+    asset.prevupdatecapabilityflags = bufferReader.readUInt8()
+  }
   return asset
 }
 
 function serializeAssetVoutValue (output, bufferWriter) {
   bufferWriter.writeVarInt(output.n)
-  putUint(bufferWriter, compressAmount(output.value))
+  putUint(bufferWriter, utils.compressAmount(output.value))
 }
 
 function serializeAssetVout (assetAllocation, bufferWriter) {
@@ -322,7 +397,5 @@ module.exports = {
   deserializeMintSyscoin: deserializeMintSyscoin,
   serializeAllocationBurnToEthereum: serializeAllocationBurnToEthereum,
   deserializeAllocationBurnToEthereum: deserializeAllocationBurnToEthereum,
-  deserializeAssetAllocations: deserializeAssetAllocations,
-  compressAmount: compressAmount,
-  decompressAmount: decompressAmount
+  deserializeAssetAllocations: deserializeAssetAllocations
 }
