@@ -80,7 +80,6 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            console.log('output.script ' + output.script.toString('hex'))
             t.same(output.script, f.expected.script)
             const asset = syscoinBufferUtils.deserializeAsset(chunks[1])
             t.same(asset, f.expected.asset)

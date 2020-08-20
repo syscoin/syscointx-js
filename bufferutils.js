@@ -58,6 +58,10 @@ class BufferWriter {
     this.offset = this.buffer.writeUInt8(i, this.offset)
   }
 
+  writeUInt16 (i) {
+    this.offset = this.buffer.writeUInt16LE(i, this.offset)
+  }
+
   writeInt32 (i) {
     this.offset = this.buffer.writeInt32LE(i, this.offset)
   }
@@ -106,6 +110,12 @@ class BufferReader {
   readUInt8 () {
     const result = this.buffer.readUInt8(this.offset)
     this.offset++
+    return result
+  }
+
+  readUInt16 () {
+    const result = this.buffer.readUInt16LE(this.offset)
+    this.offset += 2
     return result
   }
 

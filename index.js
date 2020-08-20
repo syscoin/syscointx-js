@@ -10,11 +10,11 @@ function createTransaction (utxos, changeAddress, outputsArr, feeRate) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos)
   let txVersion = 2
   const inputsArr = []
-  let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate)
+  let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate, utxos.assets)
   if (!res.inputs || !res.outputs) {
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate, utxos.assets)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets)
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -196,11 +196,8 @@ function addNotarizationSignatures (txVersion, signatures, outputs) {
 }
 
 function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  const isNonAssetFunded = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION ||
-    txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
-  const isAsset = txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === utils.SYSCOIN_TX_VERSION_ASSET_SEND
-  const isAllocationBurn = txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, isNonAssetFunded, isAsset, utxos.assets)
+  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, txVersion, utxos.assets)
+
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
@@ -208,7 +205,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   }
 
   let burnAllocationValue
-  if (isAllocationBurn) {
+  if (utils.isAllocationBurn(txVersion)) {
     // ensure only 1 to 2 outputs (2 if change was required)
     if (outputs.length > 2 && outputs.length < 1) {
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
@@ -244,10 +241,10 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
     value: dataAmount
   }
   outputs.push(dataOutput)
-  let res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate)
+  let res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate, utxos.assets)
   if (!res.inputs || !res.outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate, utxos.assets)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate, txVersion, utxos.assets)
     if (!res.inputs || !res.outputs) {
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -256,7 +253,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   inputs = res.inputs
   outputs = res.outputs
   // once funded we should swap the first output asset amount to sys amount as we are burning sysx to sys in output 0
-  if (isAllocationBurn) {
+  if (utils.isAllocationBurn(txVersion)) {
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       // modify output from asset value to syscoin value
       // first output is special it is the sys amount bring minted
@@ -481,6 +478,7 @@ function syscoinBurnToAssetAllocation (utxos, assetMap, sysChangeAddress, dataAm
 }
 
 module.exports = {
+  utils: utils,
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
   assetNew: assetNew,

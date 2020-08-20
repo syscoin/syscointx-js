@@ -18,7 +18,15 @@ const ASSET_UPDATE_NOTARY_DETAILS = 16 // can you update notary details?
 const ASSET_UPDATE_AUXFEE_KEY = 32 // can you update aux fees?
 const ASSET_UPDATE_AUXFEE_DETAILS = 64 // can you update aux fees details?
 const ASSET_UPDATE_CAPABILITYFLAGS = 128 // can you update capability flags?
-
+function isNonAssetFunded (txVersion) {
+  return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
+}
+function isAsset (txVersion) {
+  return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === SYSCOIN_TX_VERSION_ASSET_SEND
+}
+function isAllocationBurn (txVersion) {
+  return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
+}
 // Amount compression:
 // * If the amount is 0, output 0
 // * first, divide the amount (in base units) by the largest power of 10 possible; call the exponent e (e is max 9)
@@ -125,15 +133,8 @@ function sanitizeBlockbookUTXOs (utxoObj) {
       if (asset.auxFeeKeyID) {
         assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID)
       }
-      if (asset.auxfeedetails) {
-        assetObj.auxfeedetails = {}
-        assetObj.auxfeedetails.auxfees = []
-        asset.auxfeedetails.forEach(auxfee => {
-          const auxfeeObj = {}
-          auxfeeObj.bound = new BN(auxfee.bound)
-          auxfeeObj.auxfeedetails.percent = Buffer.from(auxfee.percent)
-          assetObj.auxfeedetails.auxfees.push(auxfeeObj)
-        })
+      if (asset.auxFeeDetails) {
+        assetObj.auxfeedetails = asset.auxFeeDetails
       }
       if (asset.updateCapabilityFlags) {
         assetObj.updatecapabilityflags = new BN(asset.updateCapabilityFlags)
@@ -200,6 +201,9 @@ module.exports = {
   ASSET_UPDATE_NOTARY_DETAILS: ASSET_UPDATE_NOTARY_DETAILS,
   ASSET_UPDATE_AUXFEE_KEY: ASSET_UPDATE_AUXFEE_KEY,
   ASSET_UPDATE_AUXFEE_DETAILS: ASSET_UPDATE_AUXFEE_DETAILS,
-  ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS
+  ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS,
+  isNonAssetFunded: isNonAssetFunded,
+  isAsset: isAsset,
+  isAllocationBurn: isAllocationBurn
 
 }

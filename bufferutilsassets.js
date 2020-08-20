@@ -148,7 +148,7 @@ function serializeNotaryDetails (notaryDetails, bufferWriter) {
 
 function serializeAuxFee (auxFee, bufferWriter) {
   putUint(bufferWriter, utils.compressAmount(auxFee.bound))
-  bufferWriter.writeVarSlice(auxFee.percent)
+  bufferWriter.writeUInt16(auxFee.percent)
 }
 
 function serializeAuxFeeDetails (auxFeeDetails, bufferWriter) {
@@ -245,7 +245,7 @@ function deserializeAuxFee (bufferReaderIn) {
   const auxFee = {} // TODO ts this
   var valueSat = readUint(bufferReader)
   auxFee.bound = utils.decompressAmount(valueSat)
-  auxFee.percent = bufferReader.readVarSlice()
+  auxFee.percent = bufferReader.readUInt16()
   return auxFee
 }
 
