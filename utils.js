@@ -1,5 +1,6 @@
 var BN = require('bn.js')
 const ext = require('./bn-extensions')
+const bjs = require('bitcoinjs-lib')
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
 const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
@@ -26,6 +27,30 @@ function isAsset (txVersion) {
 }
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
+}
+const syscoinNetworks = {
+  mainnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'sys',
+    bip32: {
+      public: 0x0488b21e,
+      private: 0x0488ade4
+    },
+    pubKeyHash: 0x3f,
+    scriptHash: 0x05,
+    wif: 0x80
+  },
+  testnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'tsys',
+    bip32: {
+      public: 0x043587cf,
+      private: 0x04358394
+    },
+    pubKeyHash: 0x41,
+    scriptHash: 0xc4,
+    wif: 0xef
+  }
 }
 // Amount compression:
 // * If the amount is 0, output 0
@@ -102,7 +127,7 @@ function decodeFromBase64 (input) {
   return Buffer.from(input, 'base64').toString()
 }
 
-function sanitizeBlockbookUTXOs (utxoObj) {
+function sanitizeBlockbookUTXOs (utxoObj, network) {
   const sanitizedUtxos = []
   utxoObj.utxos.forEach(utxo => {
     const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
@@ -116,13 +141,15 @@ function sanitizeBlockbookUTXOs (utxoObj) {
     utxoObj.assets.forEach(asset => {
       const assetObj = {}
       if (asset.contract) {
-        assetObj.contract = Buffer.from(asset.contract)
+        assetObj.contract = Buffer.from(asset.contract, 'hex')
       }
       if (asset.pubData) {
         assetObj.pubdata = Buffer.from(asset.pubData)
       }
       if (asset.notaryKeyID) {
-        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID)
+        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
+        network = network || syscoinNetworks.mainnet
+        assetObj.notaryaddress = bjs.payments.p2wpkh({ hash: assetObj.notarykeyid, network: network }).address
       }
       if (asset.notaryDetails) {
         assetObj.notarydetails = {}
@@ -131,7 +158,10 @@ function sanitizeBlockbookUTXOs (utxoObj) {
         assetObj.notarydetails.hdrequired = asset.notaryDetails.HDRequired
       }
       if (asset.auxFeeKeyID) {
-        assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID)
+        assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID, 'hex')
+        network = network || syscoinNetworks.mainnet
+        assetObj.auxfeeaddress = bjs.payments.p2wpkh({ hash: assetObj.auxfeekeyid, network: network }).address
+        console.log('assetObj.auxfeeaddress ' + assetObj.auxfeeaddress)
       }
       if (asset.auxFeeDetails) {
         assetObj.auxfeedetails = asset.auxFeeDetails

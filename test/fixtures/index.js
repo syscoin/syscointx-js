@@ -1,6 +1,7 @@
 var BN = require('bn.js')
 var utils = require('../../utils')
-
+const scalarPct = 1000
+const COIN = 100000000
 module.exports = [{
   description: 'new asset',
   version: utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE,
@@ -170,7 +171,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -186,7 +187,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -202,7 +203,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -218,7 +219,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -234,7 +235,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -298,7 +299,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -314,7 +315,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -330,7 +331,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -346,7 +347,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -362,7 +363,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -428,7 +429,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -444,7 +445,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -460,7 +461,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -476,7 +477,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -492,7 +493,7 @@ module.exports = [{
         balance: new BN(10000000000),
         totalSupply: new BN(0),
         maxSupply: new BN(100000000000),
-        notaryKeyID: 'temp',
+        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -542,6 +543,68 @@ module.exports = [{
         { assetGuid: 1635229540, values: [{ n: 6, value: new BN(350000000) }, { n: 7, value: new BN(150000000) }], notarysig: Buffer.alloc(65, 0) },
         { assetGuid: 1635229541, values: [{ n: 8, value: new BN(500000000) }, { n: 9, value: new BN(100000000) }], notarysig: Buffer.from('') },
         { assetGuid: 1635229542, values: [{ n: 12, value: new BN(1000000000) }], notarysig: Buffer.from('') }]
+    }
+  }
+},
+{
+  description: 'send asset allocation with auxfees',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txId: 'c6e7702f1ab817bacf81e5678ba89e0b43a8a7b6f56c4c055aa8aeda87197a62', vout: 0, script: Buffer.from('0014712a0433b3be8c2860db2d313c44fa1967542780', 'hex'), value: 980, assetInfo: { assetGuid: 1635229536, value: new BN(1000000000) } },
+      { txId: '2cf903537c6c161a1c65d940758b63efd4706fc8f78eb21d252612407e59e865', vout: 0, script: Buffer.from('0014ab0ed68aa74cc422d69e4d675eb029ab93211c4c', 'hex'), value: 100000000 }
+    ],
+    assets: [
+      {
+        assetGuid: 1635229536,
+        decimals: 8,
+        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        symbol: utils.encodeToBase64('CAT'),
+        updateCapabilityFlags: 255,
+        balance: new BN(10000000000),
+        totalSupply: new BN(0),
+        maxSupply: new BN(100000000000),
+        auxFeeKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        auxFeeDetails: {
+          auxfees: [{
+            bound: 0,
+            percent: 1 * scalarPct
+          },
+          {
+            bound: 10 * COIN,
+            percent: 0.4 * scalarPct
+          },
+          {
+            bound: 250 * COIN,
+            percent: 0.2 * scalarPct
+          },
+          {
+            bound: 2500 * COIN,
+            percent: 0.07 * scalarPct
+          },
+          {
+            bound: 25000 * COIN,
+            percent: 0.007 * scalarPct
+          },
+          {
+            bound: 250000 * COIN,
+            percent: 0
+          }
+          ]
+        }
+      }
+    ]
+  },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
+  ]),
+  expected: {
+    numOutputs: 4,
+    script: Buffer.from('6a0e01609f7761030039013b039a5b00', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(6000000) }, { n: 1, value: new BN(600000000) }, { n: 3, value: new BN(394000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
