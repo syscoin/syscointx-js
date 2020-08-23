@@ -5,6 +5,9 @@ const COIN = 100000000
 module.exports = [{
   description: 'new asset',
   version: utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE,
+  txOpts: {
+    rbf: false
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -14,6 +17,7 @@ module.exports = [{
   assetOpts: { precision: 8, symbol: 'CAT', updatecapabilityflags: 255, balance: new BN(10000000000), maxsupply: new BN(100000000000), description: 'publicvalue' },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   expected: {
+    rbf: false,
     numOutputs: 2,
     script: Buffer.from('6a3301218b885c01010000080451304655851b7b2264657363223a226348566962476c6a646d46736457553d227d0064008668ff00', 'hex'),
     asset: {
@@ -34,6 +38,9 @@ module.exports = [{
 {
   description: 'update asset',
   version: utils.SYSCOIN_TX_VERSION_ASSET_UPDATE,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -60,6 +67,7 @@ module.exports = [{
     [1552452385, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 2,
     script: Buffer.from('6a4c6401218b885c01010000080087142b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc001f7b2264657363223a22626d563349484231596d787059335a686248566c227d1b7b2264657363223a226348566962476c6a646d46736457553d227d822400007fff', 'hex'),
     asset: {
@@ -82,6 +90,9 @@ module.exports = [{
 {
   description: 'send asset',
   version: utils.SYSCOIN_TX_VERSION_ASSET_SEND,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -106,6 +117,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(1000000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }, { value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 3,
     script: Buffer.from('6a0b01609f776102000a020000', 'hex'),
     asset: {
@@ -116,6 +128,9 @@ module.exports = [{
 {
   description: 'send asset allocation',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -140,6 +155,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 3,
     script: Buffer.from('6a0b01609f776102003b022700', 'hex'),
     asset: {
@@ -174,7 +190,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -190,7 +206,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -206,7 +222,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -222,7 +238,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -238,7 +254,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -264,6 +280,7 @@ module.exports = [{
     [1635229541, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: false,
     numOutputs: 12,
     script: Buffer.from('6a4d830106609f77610200300130410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000619f7761010213410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000629f7761020380640b30410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000639f776102041d0509410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000649f77610206813e07800a410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000659f7761020831090900', 'hex'),
     asset: {
@@ -302,7 +319,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -318,7 +335,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -334,7 +351,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -350,7 +367,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -393,6 +410,7 @@ module.exports = [{
     [1635229541, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 12,
     script: Buffer.from('6a4d830106609f77610200300130410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000619f7761010213410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000629f7761020380640b30410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000639f776102041d0509410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000649f77610206813e07800a410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000659f7761020831090900', 'hex'),
     asset: {
@@ -432,7 +450,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -448,7 +466,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -480,7 +498,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -496,7 +514,7 @@ module.exports = [{
         notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
         notaryDetails: {
           endPoint: 'https://test.com',
-          instantTransfers: 1,
+          instantTransfers: 0,
           HDRequired: 1
         }
       },
@@ -533,6 +551,7 @@ module.exports = [{
     [1635229541, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 13,
     script: Buffer.from('6a4d8b0107609f77610200300130410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000619f7761010213410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000629f7761020380640b30410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000639f776102041d0509410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000649f77610206813e07800a410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000659f7761020831090900669f7761010c0a00', 'hex'),
     asset: {
@@ -549,6 +568,9 @@ module.exports = [{
 {
   description: 'send asset allocation with auxfees',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  txOpts: {
+    rbf: false
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -601,6 +623,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
+    rbf: false,
     numOutputs: 4,
     script: Buffer.from('6a0e01609f7761030039013b039a5b00', 'hex'),
     asset: {
@@ -611,6 +634,9 @@ module.exports = [{
 {
   description: 'burn asset allocation to syscoin',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -636,16 +662,20 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(400000000) }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 3,
     script: Buffer.from('6a0a01609f77610101270000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(400000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(400000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },
 {
   description: 'burn asset allocation to ethereum',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -670,6 +700,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 2,
     script: Buffer.from('6a2001609f7761020009014f00149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
@@ -681,6 +712,9 @@ module.exports = [{
 {
   description: 'burn asset allocation to ethereum multiple inputs',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -706,6 +740,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 2,
     script: Buffer.from('6a2001609f7761020009014f00149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
@@ -717,6 +752,9 @@ module.exports = [{
 {
   description: 'burn asset allocation to ethereum multiple inputs, change has asset',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -742,6 +780,7 @@ module.exports = [{
     [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
+    rbf: true,
     numOutputs: 2,
     script: Buffer.from('6a2101609f776102000901801500149667de58c15475626165eaa4c9970e409e1181d0', 'hex'),
     asset: {
@@ -753,6 +792,9 @@ module.exports = [{
 {
   description: 'standard sys send',
   version: 2,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -765,6 +807,7 @@ module.exports = [{
     { address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', value: new BN(150000000) }
   ],
   expected: {
+    rbf: true,
     version: 2,
     numOutputs: 2
   }
@@ -772,6 +815,9 @@ module.exports = [{
 {
   description: 'standard sys send with asset inputs',
   version: 2,
+  txOpts: {
+    rbf: true
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -796,6 +842,7 @@ module.exports = [{
     { address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', value: new BN(150000000) }
   ],
   expected: {
+    rbf: true,
     version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0a01609f77610100801f00', 'hex'),
@@ -807,6 +854,9 @@ module.exports = [{
 {
   description: 'standard sys send with asset input and regular input',
   version: 2,
+  txOpts: {
+    rbf: false
+  },
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
@@ -831,6 +881,7 @@ module.exports = [{
     { address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', value: new BN(150000000) }
   ],
   expected: {
+    rbf: false,
     version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
     numOutputs: 3, // 3 because new opreturn will be created
     script: Buffer.from('6a0901609f776101005900', 'hex'),

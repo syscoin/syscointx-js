@@ -6,7 +6,7 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function createTransaction (utxos, changeAddress, outputsArr, feeRate, network) {
+function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   let txVersion = 2
   const inputsArr = []
@@ -32,13 +32,29 @@ function createTransaction (utxos, changeAddress, outputsArr, feeRate, network) 
         value: ext.BN_ZERO
       }
       res.outputs.push(dataOutput)
+      let bOverrideRBF = false
+      assetAllocations.forEach(assetAllocation => {
+        const assetObj = utxos.assets.get(assetAllocation.assetGuid)
+        if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
+          bOverrideRBF = true
+        }
+      })
+      // if rbf not set but one asset was notarized turn on rbf
+      if (bOverrideRBF && txOpts.rbf !== true) {
+        console.log('override RBF settings due to notary with instant transfers enabled')
+        txOpts.rbf = true
+      }
     }
   }
   const inputs = res.inputs
   const outputs = res.outputs
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
-
+  if (txOpts && txOpts.rbf) {
+    inputs.forEach(input => {
+      input.sequence = utils.MAX_BIP125_RBF_SEQUENCE
+    })
+  }
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
@@ -195,7 +211,7 @@ function addNotarizationSignatures (txVersion, signatures, outputs) {
   return opReturnIndex
 }
 
-function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
+function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, txVersion, utxos.assets)
 
   // .inputs and .outputs will be undefined if no solution was found
@@ -294,7 +310,30 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   })
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
+  if (utxos.assets) {
+    let bOverrideRBF = false
+    assetAllocations.forEach(assetAllocation => {
+      const assetObj = utxos.assets.get(assetAllocation.assetGuid)
+      if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
+        bOverrideRBF = true
+      }
+    })
+    // if rbf not set but one asset was notarized turn on rbf
+    if (bOverrideRBF && txOpts.rbf !== true) {
+      console.log('override RBF settings due to notary with instant transfers enabled')
+      txOpts.rbf = true
+    }
+  }
+  // asset activates not allowed to use RBF because of deterministic asset GUID requirements based on input hash
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
+    txOpts.rbf = false
+  }
 
+  if (txOpts && txOpts.rbf) {
+    inputs.forEach(input => {
+      input.sequence = utils.MAX_BIP125_RBF_SEQUENCE
+    })
+  }
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
@@ -315,7 +354,7 @@ function createAssetTransaction (txVersion, utxos, dataBuffer, dataAmount, asset
   })
   return { txVersion, inputs, outputs }
 }
-function assetNew (assetOpts, utxos, sysChangeAddress, feeRate, network) {
+function assetNew (assetOpts, txOpts, utxos, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new BN(150 * utils.COIN)
@@ -367,10 +406,10 @@ function assetNew (assetOpts, utxos, sysChangeAddress, feeRate, network) {
   const assetMap = new Map([
     [0, { changeAddress: sysChangeAddress, outputs: [{ value: ext.BN_ZERO, address: sysChangeAddress }] }]
   ])
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
+function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   if (!utxos.assets.has(assetGuid)) {
     console.log('Asset input found in UTXO set passed in')
@@ -430,51 +469,51 @@ function assetUpdate (assetGuid, assetOpts, utxos, assetMap, sysChangeAddress, f
   }
   assetOpts.updateflags = updateflags
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetSend (utxos, assetMap, sysChangeAddress, feeRate, network) {
+function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationSend (utxos, assetMap, sysChangeAddress, feeRate, network) {
+function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationBurn (syscoinBurnToEthereum, utxos, assetMap, sysChangeAddress, feeRate, network) {
+function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   let txVersion = 0
-  if (syscoinBurnToEthereum.ethaddress.length > 0) {
+  if (assetOpts.ethaddress.length > 0) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
   } else {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN
   }
   const dataAmount = ext.BN_ZERO
-  const dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(syscoinBurnToEthereum)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  const dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(assetOpts)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationMint (mintSyscoin, utxos, assetMap, sysChangeAddress, feeRate, network) {
+function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
-  const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(mintSyscoin)
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function syscoinBurnToAssetAllocation (utxos, assetMap, sysChangeAddress, dataAmount, feeRate, network) {
+function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, dataAmount, feeRate, network) {
   utxos = utils.sanitizeBlockbookUTXOs(utxos, network)
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
-  return createAssetTransaction(txVersion, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
 module.exports = {

@@ -1,6 +1,7 @@
 var BN = require('bn.js')
 const ext = require('./bn-extensions')
 const bjs = require('bitcoinjs-lib')
+const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
 const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
@@ -130,7 +131,7 @@ function decodeFromBase64 (input) {
 function sanitizeBlockbookUTXOs (utxoObj, network) {
   const sanitizedUtxos = []
   utxoObj.utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), witnessUtxo: { script: utxo.script, value: utxo.value } }
+    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
     }
@@ -161,7 +162,6 @@ function sanitizeBlockbookUTXOs (utxoObj, network) {
         assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID, 'hex')
         network = network || syscoinNetworks.mainnet
         assetObj.auxfeeaddress = bjs.payments.p2wpkh({ hash: assetObj.auxfeekeyid, network: network }).address
-        console.log('assetObj.auxfeeaddress ' + assetObj.auxfeeaddress)
       }
       if (asset.auxFeeDetails) {
         assetObj.auxfeedetails = asset.auxFeeDetails
@@ -234,6 +234,7 @@ module.exports = {
   ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS,
   isNonAssetFunded: isNonAssetFunded,
   isAsset: isAsset,
-  isAllocationBurn: isAllocationBurn
+  isAllocationBurn: isAllocationBurn,
+  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
 
 }
