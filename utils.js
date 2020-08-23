@@ -128,15 +128,8 @@ function decodeFromBase64 (input) {
   return Buffer.from(input, 'base64').toString()
 }
 
-function sanitizeBlockbookUTXOs (utxoObj, network) {
+function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
   const sanitizedUtxos = []
-  utxoObj.utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: utxo.script, value: utxo.value } }
-    if (utxo.assetInfo) {
-      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
-    }
-    sanitizedUtxos.push(newUtxo)
-  })
   if (utxoObj.assets) {
     sanitizedUtxos.assets = new Map()
     utxoObj.assets.forEach(asset => {
@@ -177,6 +170,28 @@ function sanitizeBlockbookUTXOs (utxoObj, network) {
       sanitizedUtxos.assets.set(asset.assetGuid, assetObj)
     })
   }
+  utxoObj.utxos.forEach(utxo => {
+    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: utxo.script, value: utxo.value } }
+    if (utxo.assetInfo) {
+      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
+      const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
+      // sanity check to ensure sanitizedUtxos.assets has all of the assets being added to UTXO that are assets
+      if (!assetObj) {
+        return
+      }
+      // allowOtherNotarizedAssetInputs option if set will skip this check, by default this check is done and inputs will be skipped if they are notary asset inputs and user is not sending those assets (used as gas to fulfill requested output amount of SYS)
+      if (!txOpts.allowOtherNotarizedAssetInputs) {
+        // if notarization is required but it isn't a requested asset to send we skip this UTXO as would be dependent on a foreign asset notary
+        if (assetObj.notarykeyid && assetObj.notarykeyid.length > 0) {
+          if (!assetMap || !assetMap.has(utxo.assetInfo.assetGuid)) {
+            console.log('SKIPPING notary utxo')
+            return
+          }
+        }
+      }
+    }
+    sanitizedUtxos.push(newUtxo)
+  })
 
   return sanitizedUtxos
 }
