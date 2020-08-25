@@ -171,7 +171,7 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
     })
   }
   utxoObj.utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txId, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: utxo.script, value: utxo.value } }
+    const newUtxo = { txId: utxo.txId, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: utxo.script, value: utxo.value } }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
       const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
