@@ -518,6 +518,7 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
 
 module.exports = {
   utils: utils,
+  bufferUtils: syscoinBufferUtils,
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
   assetNew: assetNew,
