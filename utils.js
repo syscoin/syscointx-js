@@ -144,6 +144,13 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
         assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
         network = network || syscoinNetworks.mainnet
         assetObj.notaryaddress = bjs.payments.p2wpkh({ hash: assetObj.notarykeyid, network: network }).address
+        // in unit tests notarySig may be provided
+        if (asset.notarySig) {
+          assetObj.notarysig = Buffer.from(asset.notarySig, 'hex')
+        } else {
+          // prefill in this likely case where notarySig isn't provided
+          assetObj.notarysig = Buffer.alloc(65, 0)
+        }
       }
       if (asset.notaryDetails) {
         assetObj.notarydetails = {}
