@@ -133,6 +133,9 @@ function decodeFromBase64ToHex (input) {
 }
 
 function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
+  if (!txOpts) {
+    txOpts = { rbf: false }
+  }
   const sanitizedUtxos = []
   if (utxoObj.assets) {
     sanitizedUtxos.assets = new Map()
