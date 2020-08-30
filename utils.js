@@ -124,8 +124,12 @@ function encodeToBase64 (input) {
   return Buffer.from(input).toString('base64')
 }
 
-function decodeFromBase64 (input) {
+function decodeFromBase64ToASCII (input) {
   return Buffer.from(input, 'base64').toString()
+}
+
+function decodeFromBase64ToHex (input) {
+  return Buffer.from(input, 'base64').toString('hex')
 }
 
 function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
@@ -231,7 +235,8 @@ module.exports = {
   sanitizeBlockbookUTXOs: sanitizeBlockbookUTXOs,
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
-  decodeFromBase64: decodeFromBase64,
+  decodeFromBase64ToASCII: decodeFromBase64ToASCII,
+  decodeFromBase64ToHex: decodeFromBase64ToHex,
   encodePubDataFromFields: encodePubDataFromFields,
   decodeFieldsFromPubData: decodeFieldsFromPubData,
   compressAmount: compressAmount,
