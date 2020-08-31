@@ -68,7 +68,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, n
 function updateAllocationIndexes (assetAllocations, index) {
   assetAllocations.forEach(voutAsset => {
     voutAsset.values.forEach(output => {
-      if (output.n >= index && output.n > 0) {
+      if (output.n > index) {
         output.n--
       }
     })
@@ -100,7 +100,8 @@ function optimizeOutputs (outputs, assetAllocations) {
         // because we deleted this index, it will invalidate any indexes after (we must subtract by one on every index after assetChangeIndex)
         updateAllocationIndexes(assetAllocations, allocation.n)
         // set them the same and remove asset output
-        if (output.changeIndex >= allocation.n && output.changeIndex > 0) {
+        // we reduce index by one because any index > allocation.n would have been reduced by updateAllocationIndexes and so changeIndex should also by reduced by 1 if its above allocation.n
+        if (output.changeIndex > allocation.n) {
           allocation.n = output.changeIndex - 1
         } else {
           allocation.n = output.changeIndex
