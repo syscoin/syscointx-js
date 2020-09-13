@@ -6,15 +6,14 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts)
+function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
   let txVersion = 2
   const inputsArr = []
-  let res = coinSelect.coinSelect(utxos, inputsArr, outputsArr, feeRate, utxos.assets)
+  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets)
   if (!res.inputs || !res.outputs) {
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets)
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -213,7 +212,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
 }
 
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos, assetMap, feeRate, txVersion, utxos.assets)
+  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, utxos.assets)
 
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) {
@@ -258,10 +257,10 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     value: dataAmount
   }
   outputs.push(dataOutput)
-  let res = coinSelect.coinSelect(utxos, inputs, outputs, feeRate, utxos.assets)
+  let res = coinSelect.coinSelect(utxos.utxos, inputs, outputs, feeRate, utxos.assets)
   if (!res.inputs || !res.outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos, inputs, outputs, feeRate, txVersion, utxos.assets)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets)
     if (!res.inputs || !res.outputs) {
       console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -355,12 +354,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   })
   return { txVersion, inputs, outputs }
 }
-function assetNew (assetOpts, txOpts, utxos, sysChangeAddress, feeRate, network) {
-  // create dummy map where GUID will be replaced by deterministic one based on first input txid, we need this so fees will be accurately determined on first place of coinselect
-  const assetMap = new Map([
-    [0, { changeAddress: sysChangeAddress, outputs: [{ value: ext.BN_ZERO, address: sysChangeAddress }] }]
-  ])
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
   const dataAmount = new BN(150 * utils.COIN)
   assetOpts.contract = assetOpts.contract || Buffer.from('')
@@ -410,8 +404,7 @@ function assetNew (assetOpts, txOpts, utxos, sysChangeAddress, feeRate, network)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   if (!utxos.assets.has(assetGuid)) {
     console.log('Asset input found in UTXO set passed in')
     return null
@@ -472,24 +465,21 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
-function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
   const dataBuffer = null
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   let txVersion = 0
   if (assetOpts.ethaddress.length > 0) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
@@ -501,16 +491,14 @@ function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, dataAmount, feeRate, network) {
-  utxos = utils.sanitizeBlockbookUTXOs(utxos, network, txOpts, assetMap)
+function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, dataAmount, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)

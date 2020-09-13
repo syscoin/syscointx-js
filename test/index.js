@@ -12,6 +12,83 @@ function testPair (dec, enc) {
   return utils.compressAmount(dec).eq(enc) &&
   utils.decompressAmount(enc).eq(dec)
 }
+
+function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
+  if (!txOpts) {
+    txOpts = { rbf: false }
+  }
+  const sanitizedUtxos = { utxos: [] }
+  if (utxoObj.assets) {
+    sanitizedUtxos.assets = new Map()
+    utxoObj.assets.forEach(asset => {
+      const assetObj = {}
+      if (asset.contract) {
+        assetObj.contract = Buffer.from(asset.contract, 'hex')
+      }
+      if (asset.pubData) {
+        assetObj.pubdata = Buffer.from(JSON.stringify(asset.pubData))
+      }
+      if (asset.notaryKeyID) {
+        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
+        // in unit tests notarySig may be provided
+        if (asset.notarySig) {
+          assetObj.notarysig = Buffer.from(asset.notarySig, 'hex')
+        } else {
+          // prefill in this likely case where notarySig isn't provided
+          assetObj.notarysig = Buffer.alloc(65, 0)
+        }
+      }
+      if (asset.notaryDetails) {
+        assetObj.notarydetails = {}
+        if (asset.notaryDetails.endPoint) {
+          assetObj.notarydetails.endpoint = Buffer.from(asset.notaryDetails.endPoint, 'base64')
+        } else {
+          assetObj.notarydetails.endpoint = Buffer.from('')
+        }
+        assetObj.notarydetails.instanttransfers = asset.notaryDetails.instantTransfers
+        assetObj.notarydetails.hdrequired = asset.notaryDetails.HDRequired
+      }
+      if (asset.auxFeeKeyID) {
+        assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID, 'hex')
+      }
+      if (asset.auxFeeDetails) {
+        assetObj.auxfeedetails = asset.auxFeeDetails
+      }
+      if (asset.updateCapabilityFlags) {
+        assetObj.updatecapabilityflags = new BN(asset.updateCapabilityFlags)
+      }
+      assetObj.balance = new BN(asset.balance)
+      assetObj.totalsupply = new BN(asset.totalSupply)
+      assetObj.maxsupply = new BN(asset.maxSupply)
+      assetObj.precision = new BN(asset.decimals)
+      sanitizedUtxos.assets.set(asset.assetGuid, assetObj)
+    })
+  }
+  utxoObj.utxos.forEach(utxo => {
+    const newUtxo = { txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: Buffer.from(utxo.script, 'hex'), value: new BN(utxo.value) } }
+    if (utxo.assetInfo) {
+      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
+      const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
+      // sanity check to ensure sanitizedUtxos.assets has all of the assets being added to UTXO that are assets
+      if (!assetObj) {
+        return
+      }
+      // allowOtherNotarizedAssetInputs option if set will skip this check, by default this check is done and inputs will be skipped if they are notary asset inputs and user is not sending those assets (used as gas to fulfill requested output amount of SYS)
+      if (!txOpts.allowOtherNotarizedAssetInputs) {
+        // if notarization is required but it isn't a requested asset to send we skip this UTXO as would be dependent on a foreign asset notary
+        if (assetObj.notarykeyid && assetObj.notarykeyid.length > 0) {
+          if (!assetMap || !assetMap.has(utxo.assetInfo.assetGuid)) {
+            console.log('SKIPPING notary utxo')
+            return
+          }
+        }
+      }
+    }
+    sanitizedUtxos.utxos.push(newUtxo)
+  })
+
+  return sanitizedUtxos
+}
 tape.test('Assertions with tape.', (assert) => {
   assert.equal(testPair(new BN(0), new BN(0x0)), true)
   assert.equal(testPair(new BN(1), new BN(0x1)), true)
@@ -30,6 +107,7 @@ fixtures.forEach(function (f) {
       txOpts = { rbf: false }
     }
     if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.syscoinBurnToAssetAllocation(utxos, txOpts, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -45,7 +123,8 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-      const res = syscointx.assetNew(f.assetOpts, txOpts, utxos, f.sysChangeAddress, f.feeRate)
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      const res = syscointx.assetNew(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -61,6 +140,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.assetUpdate(f.assetGuid, f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -77,6 +157,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.assetSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -92,6 +173,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.assetAllocationMint(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -108,6 +190,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.assetAllocationBurn(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -124,6 +207,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
       const res = syscointx.assetAllocationSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -139,6 +223,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === 2) {
+      utxos = sanitizeBlockbookUTXOs(utxos, txOpts)
       const res = syscointx.createTransaction(txOpts, utxos, f.sysChangeAddress, f.outputs, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.expected.version)

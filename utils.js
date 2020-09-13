@@ -1,6 +1,5 @@
 var BN = require('bn.js')
 const ext = require('./bn-extensions')
-const bjs = require('bitcoinjs-lib')
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
@@ -28,30 +27,6 @@ function isAsset (txVersion) {
 }
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
-}
-const syscoinNetworks = {
-  mainnet: {
-    messagePrefix: '\x18Syscoin Signed Message:\n',
-    bech32: 'sys',
-    bip32: {
-      public: 0x0488b21e,
-      private: 0x0488ade4
-    },
-    pubKeyHash: 0x3f,
-    scriptHash: 0x05,
-    wif: 0x80
-  },
-  testnet: {
-    messagePrefix: '\x18Syscoin Signed Message:\n',
-    bech32: 'tsys',
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
-    },
-    pubKeyHash: 0x41,
-    scriptHash: 0xc4,
-    wif: 0xef
-  }
 }
 // Amount compression:
 // * If the amount is 0, output 0
@@ -148,87 +123,6 @@ function encodePubDataFromFields (pubData) {
   return Buffer.from(JSON.stringify(obj))
 }
 
-function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
-  if (!txOpts) {
-    txOpts = { rbf: false }
-  }
-  const sanitizedUtxos = []
-  if (utxoObj.assets) {
-    sanitizedUtxos.assets = new Map()
-    utxoObj.assets.forEach(asset => {
-      const assetObj = {}
-      if (asset.contract) {
-        assetObj.contract = Buffer.from(asset.contract, 'hex')
-      }
-      if (asset.pubData) {
-        assetObj.pubdata = Buffer.from(JSON.stringify(asset.pubData))
-      }
-      if (asset.notaryKeyID) {
-        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
-        network = network || syscoinNetworks.mainnet
-        assetObj.notaryaddress = bjs.payments.p2wpkh({ hash: assetObj.notarykeyid, network: network }).address
-        // in unit tests notarySig may be provided
-        if (asset.notarySig) {
-          assetObj.notarysig = Buffer.from(asset.notarySig, 'hex')
-        } else {
-          // prefill in this likely case where notarySig isn't provided
-          assetObj.notarysig = Buffer.alloc(65, 0)
-        }
-      }
-      if (asset.notaryDetails) {
-        assetObj.notarydetails = {}
-        if (asset.notaryDetails.endPoint) {
-          assetObj.notarydetails.endpoint = Buffer.from(asset.notaryDetails.endPoint, 'base64')
-        } else {
-          assetObj.notarydetails.endpoint = Buffer.from('')
-        }
-        assetObj.notarydetails.instanttransfers = asset.notaryDetails.instantTransfers
-        assetObj.notarydetails.hdrequired = asset.notaryDetails.HDRequired
-      }
-      if (asset.auxFeeKeyID) {
-        assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID, 'hex')
-        network = network || syscoinNetworks.mainnet
-        assetObj.auxfeeaddress = bjs.payments.p2wpkh({ hash: assetObj.auxfeekeyid, network: network }).address
-      }
-      if (asset.auxFeeDetails) {
-        assetObj.auxfeedetails = asset.auxFeeDetails
-      }
-      if (asset.updateCapabilityFlags) {
-        assetObj.updatecapabilityflags = new BN(asset.updateCapabilityFlags)
-      }
-      assetObj.balance = new BN(asset.balance)
-      assetObj.totalsupply = new BN(asset.totalSupply)
-      assetObj.maxsupply = new BN(asset.maxSupply)
-      assetObj.precision = new BN(asset.decimals)
-      sanitizedUtxos.assets.set(asset.assetGuid, assetObj)
-    })
-  }
-  utxoObj.utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: Buffer.from(utxo.script, 'hex'), value: new BN(utxo.value) } }
-    if (utxo.assetInfo) {
-      newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
-      const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
-      // sanity check to ensure sanitizedUtxos.assets has all of the assets being added to UTXO that are assets
-      if (!assetObj) {
-        return
-      }
-      // allowOtherNotarizedAssetInputs option if set will skip this check, by default this check is done and inputs will be skipped if they are notary asset inputs and user is not sending those assets (used as gas to fulfill requested output amount of SYS)
-      if (!txOpts.allowOtherNotarizedAssetInputs) {
-        // if notarization is required but it isn't a requested asset to send we skip this UTXO as would be dependent on a foreign asset notary
-        if (assetObj.notarykeyid && assetObj.notarykeyid.length > 0) {
-          if (!assetMap || !assetMap.has(utxo.assetInfo.assetGuid)) {
-            console.log('SKIPPING notary utxo')
-            return
-          }
-        }
-      }
-    }
-    sanitizedUtxos.push(newUtxo)
-  })
-
-  return sanitizedUtxos
-}
-
 function generateAssetGuid (input) {
   let bigNum = new BN(input.txId, 16)
   bigNum = ext.add(bigNum, new BN(input.vout))
@@ -238,7 +132,6 @@ function generateAssetGuid (input) {
 }
 
 module.exports = {
-  sanitizeBlockbookUTXOs: sanitizeBlockbookUTXOs,
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
   decodeFromBase64ToASCII: decodeFromBase64ToASCII,
