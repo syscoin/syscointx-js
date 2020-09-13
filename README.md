@@ -33,7 +33,7 @@ let feeRate = 55 // satoshis per byte
 let utxos = [
   ...,
   {
-    txId: '...',
+    txid: '...',
     vout: 0,
     ...,
     value: 10000,
