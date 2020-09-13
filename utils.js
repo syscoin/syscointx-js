@@ -161,7 +161,7 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
         assetObj.contract = Buffer.from(asset.contract, 'hex')
       }
       if (asset.pubData) {
-        assetObj.pubdata = Buffer.from(asset.pubData)
+        assetObj.pubdata = Buffer.from(JSON.stringify(asset.pubData))
       }
       if (asset.notaryKeyID) {
         assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
