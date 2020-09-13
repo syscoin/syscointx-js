@@ -177,7 +177,11 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
       }
       if (asset.notaryDetails) {
         assetObj.notarydetails = {}
-        assetObj.notarydetails.endpoint = Buffer.from(asset.notaryDetails.endPoint)
+        if (asset.notaryDetails.endPoint) {
+          assetObj.notarydetails.endpoint = Buffer.from(asset.notaryDetails.endPoint, 'base64')
+        } else {
+          assetObj.notarydetails.endpoint = Buffer.from('')
+        }
         assetObj.notarydetails.instanttransfers = asset.notaryDetails.instantTransfers
         assetObj.notarydetails.hdrequired = asset.notaryDetails.HDRequired
       }
@@ -192,7 +196,6 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
       if (asset.updateCapabilityFlags) {
         assetObj.updatecapabilityflags = new BN(asset.updateCapabilityFlags)
       }
-      assetObj.symbol = Buffer.from(asset.symbol)
       assetObj.balance = new BN(asset.balance)
       assetObj.totalsupply = new BN(asset.totalSupply)
       assetObj.maxsupply = new BN(asset.maxSupply)
