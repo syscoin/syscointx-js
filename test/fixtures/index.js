@@ -25,7 +25,7 @@ module.exports = [{
       precision: 8,
       symbol: Buffer.from(utils.encodeToBase64('CAT')),
       updateflags: 133,
-      pubdata: utils.encodePubDataFromFields('publicvalue'),
+      pubdata: utils.encodePubDataFromFields({ desc: 'publicvalue' }),
       prevpubdata: Buffer.from(''),
       balance: new BN(10000000000),
       totalsupply: new BN(0),
@@ -51,7 +51,7 @@ module.exports = [{
       {
         assetGuid: 1552452385,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -77,8 +77,8 @@ module.exports = [{
       updateflags: 135,
       contract: Buffer.from('2b1e58b979e4b2d72d8bca5bb4646ccc032ddbfc', 'hex'),
       prevcontract: Buffer.from(''),
-      pubdata: utils.encodePubDataFromFields('new publicvalue'),
-      prevpubdata: utils.encodePubDataFromFields('publicvalue'),
+      pubdata: utils.encodePubDataFromFields({ desc: 'new publicvalue' }),
+      prevpubdata: utils.encodePubDataFromFields({ desc: 'publicvalue' }),
       balance: new BN(42000000000),
       totalsupply: new BN(0),
       maxsupply: new BN(0),
@@ -103,7 +103,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -141,7 +141,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -181,7 +181,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -197,7 +197,7 @@ module.exports = [{
       {
         assetGuid: 1635229537,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -213,7 +213,7 @@ module.exports = [{
       {
         assetGuid: 1635229538,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -229,7 +229,7 @@ module.exports = [{
       {
         assetGuid: 1635229539,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -245,7 +245,7 @@ module.exports = [{
       {
         assetGuid: 1635229540,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -261,7 +261,7 @@ module.exports = [{
       {
         assetGuid: 1635229541,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -310,7 +310,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -326,7 +326,7 @@ module.exports = [{
       {
         assetGuid: 1635229537,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -342,7 +342,7 @@ module.exports = [{
       {
         assetGuid: 1635229538,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -358,7 +358,7 @@ module.exports = [{
       {
         assetGuid: 1635229539,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -374,7 +374,7 @@ module.exports = [{
       {
         assetGuid: 1635229540,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -390,7 +390,7 @@ module.exports = [{
       {
         assetGuid: 1635229541,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -444,7 +444,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -460,7 +460,7 @@ module.exports = [{
       {
         assetGuid: 1635229537,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -476,7 +476,7 @@ module.exports = [{
       {
         assetGuid: 1635229538,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -492,7 +492,7 @@ module.exports = [{
       {
         assetGuid: 1635229539,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -508,7 +508,7 @@ module.exports = [{
       {
         assetGuid: 1635229540,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -524,7 +524,7 @@ module.exports = [{
       {
         assetGuid: 1635229541,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -534,7 +534,7 @@ module.exports = [{
       {
         assetGuid: 1635229542,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -590,7 +590,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -656,7 +656,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -694,7 +694,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -734,7 +734,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -774,7 +774,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -837,7 +837,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',
@@ -876,7 +876,7 @@ module.exports = [{
       {
         assetGuid: 1635229536,
         decimals: 8,
-        pubData: utils.encodePubDataFromFields('publicvalue').toString(),
+        pubData: utils.encodePubDataFromFields({ desc: 'publicvalue' }).toString(),
         symbol: utils.encodeToBase64('CAT'),
         updateCapabilityFlags: 255,
         balance: '10000000000',

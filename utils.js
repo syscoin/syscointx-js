@@ -132,6 +132,22 @@ function decodeFromBase64ToHex (input) {
   return Buffer.from(input, 'base64').toString('hex')
 }
 
+function decodeFieldsFromPubData (jsonData) {
+  const res = {}
+  if (jsonData.desc) {
+    res.desc = decodeFromBase64ToASCII(jsonData.desc)
+  }
+  return res
+}
+
+function encodePubDataFromFields (pubData) {
+  const obj = {}
+  if (pubData && pubData.desc) {
+    obj.desc = encodeToBase64(pubData.desc)
+  }
+  return Buffer.from(JSON.stringify(obj))
+}
+
 function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap) {
   if (!txOpts) {
     txOpts = { rbf: false }
@@ -216,22 +232,6 @@ function generateAssetGuid (input) {
   // clear bits 33 and up to keep low 32 bits
   bigNum = bigNum.maskn(32)
   return bigNum.toNumber()
-}
-
-function decodeFieldsFromPubData (jsonData) {
-  let description = null
-  if (jsonData.desc) {
-    description = jsonData.desc
-  }
-  return { description }
-}
-
-function encodePubDataFromFields (description) {
-  const obj = {}
-  if (description) {
-    obj.desc = encodeToBase64(description)
-  }
-  return Buffer.from(JSON.stringify(obj))
 }
 
 module.exports = {

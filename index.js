@@ -365,7 +365,7 @@ function assetNew (assetOpts, txOpts, utxos, sysChangeAddress, feeRate, network)
   const dataAmount = new BN(150 * utils.COIN)
   assetOpts.contract = assetOpts.contract || Buffer.from('')
   if (assetOpts.description) {
-    assetOpts.pubdata = Buffer.from(utils.encodePubDataFromFields(assetOpts.description))
+    assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
   } else {
     assetOpts.pubdata = Buffer.from('')
   }
@@ -424,7 +424,7 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
   assetOpts.balance = assetOpts.balance || ext.BN_ZERO
   assetOpts.contract = assetOpts.contract || assetObj.contract
   if (assetOpts.description) {
-    assetOpts.pubdata = utils.encodePubDataFromFields(assetOpts.description)
+    assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
   } else {
     assetOpts.pubdata = assetObj.pubdata
   }
