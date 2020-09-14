@@ -13,6 +13,30 @@ function testPair (dec, enc) {
   utils.decompressAmount(enc).eq(dec)
 }
 
+const syscoinNetworks = {
+  mainnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'sys',
+    bip32: {
+      public: 0x0488b21e,
+      private: 0x0488ade4
+    },
+    pubKeyHash: 0x3f,
+    scriptHash: 0x05,
+    wif: 0x80
+  },
+  testnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'tsys',
+    bip32: {
+      public: 0x043587cf,
+      private: 0x04358394
+    },
+    pubKeyHash: 0x41,
+    scriptHash: 0xc4,
+    wif: 0xef
+  }
+}
 function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
   if (!txOpts) {
     txOpts = { rbf: false }
@@ -30,6 +54,7 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
       }
       if (asset.notaryKeyID) {
         assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
+        assetObj.notaryaddress = bitcoin.payments.p2wpkh({ hash: assetObj.notarykeyid, network: syscoinNetworks.testnet }).address
         // in unit tests notarySig may be provided
         if (asset.notarySig) {
           assetObj.notarysig = Buffer.from(asset.notarySig, 'hex')
@@ -50,6 +75,7 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
       }
       if (asset.auxFeeKeyID) {
         assetObj.auxfeekeyid = Buffer.from(asset.auxFeeKeyID, 'hex')
+        assetObj.auxfeeaddress = bitcoin.payments.p2wpkh({ hash: assetObj.auxfeekeyid, network: syscoinNetworks.testnet }).address
       }
       if (asset.auxFeeDetails) {
         assetObj.auxfeedetails = asset.auxFeeDetails
