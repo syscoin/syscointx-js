@@ -91,7 +91,11 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
     })
   }
   utxoObj.utxos.forEach(utxo => {
-    const newUtxo = { txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime, witnessUtxo: { script: Buffer.from(utxo.script, 'hex'), value: new BN(utxo.value) } }
+    if (!utxo.address) {
+      console.log('SKIPPING utxo: no address field defined')
+      return
+    }
+    const newUtxo = { address: utxo.address, txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime }
     if (utxo.assetInfo) {
       newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
       const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
