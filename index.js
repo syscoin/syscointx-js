@@ -406,7 +406,7 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
 
 function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   if (!utxos.assets.has(assetGuid)) {
-    console.log('Asset input found in UTXO set passed in')
+    console.log('Asset input not found in UTXO set passed in')
     return null
   }
   const assetObj = utxos.assets.get(assetGuid)
