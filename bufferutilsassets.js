@@ -130,6 +130,7 @@ function byteLengthMintSyscoin (mintSyscoin) {
   len += varuint.encodingLength(mintSyscoin.txpath.length) + mintSyscoin.txpath.length
   len += varuint.encodingLength(mintSyscoin.receiptparentnodes.length) + mintSyscoin.receiptparentnodes.length
   len += varuint.encodingLength(mintSyscoin.receiptroot.length) + mintSyscoin.receiptroot.length
+  len += varuint.encodingLength(mintSyscoin.receiptvalue.length) + mintSyscoin.receiptvalue.length
   len += 4 // block number
   len += 4 // bridge xfer id
   return len
