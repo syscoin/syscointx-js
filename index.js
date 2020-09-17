@@ -494,25 +494,25 @@ function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
 function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
-  if(assetOpts.vchTxParentNodes.length > utils.USHRT_MAX()) {
-    console.log("tx parent nodes exceeds maximum allowable size of: ", utils.USHRT_MAX(), ". Found size: ", assetOpts.vchTxParentNodes.length)
+  if (assetOpts.vchTxParentNodes.length > utils.USHRT_MAX()) {
+    console.log('tx parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', assetOpts.vchTxParentNodes.length)
     return
   }
-  if(assetOpts.vchReceiptParentNodes.length > utils.USHRT_MAX()) {
-    console.log("receipt parent nodes exceeds maximum allowable size of: ", utils.USHRT_MAX(), ". Found size: ", assetOpts.vchReceiptParentNodes.length)
+  if (assetOpts.vchReceiptParentNodes.length > utils.USHRT_MAX()) {
+    console.log('receipt parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', assetOpts.vchReceiptParentNodes.length)
     return
   }
   // find byte offset of tx data in the parent nodes
-  assetOpts.txpos = assetOpts.vchTxParentNodes.indexOf(assetOpts.vchTxValue);
-  if(assetOpts.txpos === -1){
-      console.log("Could not find tx value in tx parent nodes")
-      return 
+  assetOpts.txpos = assetOpts.vchTxParentNodes.indexOf(assetOpts.vchTxValue)
+  if (assetOpts.txpos === -1) {
+    console.log('Could not find tx value in tx parent nodes')
+    return
   }
   // find byte offset of receipt data in the parent nodes
-  assetOpts.receiptpos = assetOpts.vchReceiptParentNodes.indexOf(assetOpts.vchReceiptValue);
-  if(assetOpts.receiptpos === -1){
-      console.log("Could not find receipt value in receipt parent nodes"); 
-      return 
+  assetOpts.receiptpos = assetOpts.vchReceiptParentNodes.indexOf(assetOpts.vchReceiptValue)
+  if (assetOpts.receiptpos === -1) {
+    console.log('Could not find receipt value in receipt parent nodes')
+    return
   }
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)

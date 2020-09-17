@@ -28,7 +28,7 @@ function isAsset (txVersion) {
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
 }
-function USHRT_MAX() {
+function USHRT_MAX () {
   return 65535
 }
 // Amount compression:
