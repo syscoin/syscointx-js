@@ -128,7 +128,6 @@ function byteLengthMintSyscoin (mintSyscoin) {
   len += varuint.encodingLength(mintSyscoin.txparentnodes.length) + mintSyscoin.txparentnodes.length
   len += varuint.encodingLength(mintSyscoin.txroot.length) + mintSyscoin.txroot.length
   len += varuint.encodingLength(mintSyscoin.txpath.length) + mintSyscoin.txpath.length
-  len += varuint.encodingLength(mintSyscoin.receiptpath.length) + mintSyscoin.receiptpath.length
   len += varuint.encodingLength(mintSyscoin.receiptparentnodes.length) + mintSyscoin.receiptparentnodes.length
   len += varuint.encodingLength(mintSyscoin.receiptroot.length) + mintSyscoin.receiptroot.length
   len += 4 // block number
@@ -348,7 +347,6 @@ function serializeMintSyscoin (mintSyscoin) {
   bufferWriter.writeVarSlice(mintSyscoin.receiptvalue)
   bufferWriter.writeVarSlice(mintSyscoin.receiptparentnodes)
   bufferWriter.writeVarSlice(mintSyscoin.receiptroot)
-  bufferWriter.writeVarSlice(mintSyscoin.receiptpath)
 
   // need to slice because of compress varInt functionality in PutUint which is not accounted for in byteLengthMintSyscoin
   return buffer.slice(0, bufferWriter.offset)
@@ -368,7 +366,6 @@ function deserializeMintSyscoin (buffer) {
   mintSyscoin.receiptvalue = bufferReader.readVarSlice()
   mintSyscoin.receiptparentnodes = bufferReader.readVarSlice()
   mintSyscoin.receiptroot = bufferReader.readVarSlice()
-  mintSyscoin.receiptpath = bufferReader.readVarSlice()
 
   return mintSyscoin
 }
