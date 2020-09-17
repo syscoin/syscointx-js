@@ -28,6 +28,9 @@ function isAsset (txVersion) {
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
 }
+function USHRT_MAX() {
+  return 65535
+}
 // Amount compression:
 // * If the amount is 0, output 0
 // * first, divide the amount (in base units) by the largest power of 10 possible; call the exponent e (e is max 9)
@@ -140,6 +143,7 @@ module.exports = {
   decodeFieldsFromPubData: decodeFieldsFromPubData,
   compressAmount: compressAmount,
   decompressAmount: decompressAmount,
+  USHRT_MAX: USHRT_MAX,
   COIN: COIN,
   CENT: CENT,
   SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN: SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
