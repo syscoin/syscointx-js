@@ -671,14 +671,14 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(400000000) }] }]
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000) }] }]
   ]),
   expected: {
     rbf: true,
     numOutputs: 3,
-    script: Buffer.from('6a0a01609f77610101270000', 'hex'),
+    script: Buffer.from('6a0c01609f776102013102310000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(400000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(500000000) }, { n: 2, value: new BN(500000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },

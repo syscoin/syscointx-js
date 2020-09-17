@@ -240,7 +240,6 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       updateAllocationIndexes(assetAllocations, 0)
     }
     // point first allocation to next output (burn output)
-    // now this index is available we can use it
     assetAllocation.values[0].n = outputs.length
   }
 
@@ -273,7 +272,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   if (utils.isAllocationBurn(txVersion)) {
     if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       // modify output from asset value to syscoin value
-      // first output is special it is the sys amount bring minted
+      // first output is special it is the sys amount being minted
       outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
@@ -290,10 +289,10 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     assetMap.delete(0)
     assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
-  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-    // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-    optimizeOutputs(outputs, assetAllocations)
-  }
+
+  // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
+  optimizeOutputs(outputs, assetAllocations)
+
   // serialize allocations again they may have been changed in optimization
   assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
   if (dataBuffer) {
