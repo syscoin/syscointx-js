@@ -5,6 +5,7 @@ const syscoinBufferUtils = require('./bufferutilsassets.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
+const _ = require('lodash')
 
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
   let txVersion = 2
@@ -428,35 +429,35 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
   assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || assetObj.updatecapabilityflags
   let updateflags = 0
   // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
-  if (assetObj.contract !== assetOpts.contract) {
+  if (!_.isEqual(assetObj.contract, assetOpts.contract)) {
     assetOpts.prevcontract = assetObj.contract || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
   }
-  if (assetObj.pubdata !== assetOpts.pubdata) {
+  if (!_.isEqual(assetObj.pubdata, assetOpts.pubdata)) {
     assetOpts.prevpubdata = assetObj.pubdata || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_DATA
   }
-  if (assetObj.updatecapabilityflags !== assetOpts.updatecapabilityflags) {
+  if (!_.isEqual(assetObj.updatecapabilityflags, assetOpts.updatecapabilityflags)) {
     assetOpts.prevupdatecapabilityflags = assetObj.updatecapabilityflags
     updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
   }
-  if (assetObj.notarykeyid !== assetOpts.notarykeyid) {
+  if (!_.isEqual(assetObj.notarykeyid, assetOpts.notarykeyid)) {
     assetOpts.prevnotarykeyid = assetObj.notarykeyid || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
   }
-  if (assetObj.notarydetails !== assetOpts.notarydetails) {
+  if (!_.isEqual(assetObj.notarydetails, assetOpts.notarydetails)) {
     assetOpts.prevnotarydetails = assetObj.notarydetails || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
-  if (assetObj.auxfeekeyid !== assetOpts.auxfeekeyid) {
+  if (!_.isEqual(assetObj.auxfeekeyid, assetOpts.auxfeekeyid)) {
     assetOpts.prevauxfeekeyid = assetObj.auxfeekeyid || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
   }
-  if (assetObj.auxfeedetails !== assetOpts.auxfeedetails) {
+  if (!_.isEqual(assetObj.auxfeedetails, assetOpts.auxfeedetails)) {
     assetOpts.prevauxfeedetails = assetObj.auxfeedetails || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
   }
-  if (!assetOpts.balance.eq(ext.BN_ZERO)) {
+  if (!_.isEqual(assetOpts.balance, ext.BN_ZERO)) {
     assetOpts.totalsupply = ext.BN_ZERO
     assetOpts.maxsupply = ext.BN_ZERO
     updateflags = updateflags | utils.ASSET_UPDATE_SUPPLY
