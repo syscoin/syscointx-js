@@ -875,7 +875,7 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '10000000000', assetInfo: { assetGuid: 2305793883, value: '90000000' } },
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000', assetInfo: { assetGuid: 2305793883, value: '90000000' } },
       { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: 2369540753, value: '10000000' } }
     ],
     assets: [
@@ -909,10 +909,10 @@ module.exports = [{
   expected: {
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-    numOutputs: 4,
-    script: Buffer.from('6a19034b89e89b010064005b9f6f890102580091523c8d01030800', 'hex'),
+    numOutputs: 3,
+    script: Buffer.from('6a11024b89e89b010064005b9f6f8901025800', 'hex'),
     asset: {
-      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }], notarysig: Buffer.from('') }, { assetGuid: 2305793883, values: [{ n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }, { assetGuid: 2369540753, values: [{ n: 3, value: new BN(10000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }], notarysig: Buffer.from('') }, { assetGuid: 2305793883, values: [{ n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -959,10 +959,10 @@ module.exports = [{
   expected: {
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-    numOutputs: 4,
-    script: Buffer.from('6a13024b89e89b02006402580091523c8d01030800', 'hex'),
+    numOutputs: 3,
+    script: Buffer.from('6a0b014b89e89b020064025800', 'hex'),
     asset: {
-      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }, { n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }, { assetGuid: 2369540753, values: [{ n: 3, value: new BN(10000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }, { n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
