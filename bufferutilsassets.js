@@ -45,6 +45,7 @@ function byteLengthAuxFee (auxfee) {
 
 function byteLengthAuxFeeDetails (auxfeedetails) {
   let len = 0
+  len += varuint.encodingLength(auxfeedetails.auxfeekeyid.length) + auxfeedetails.auxfeekeyid.length
   auxfeedetails.auxfees.forEach(auxfee => {
     len += byteLengthAuxFee(auxfee)
   })
@@ -60,8 +61,12 @@ function byteLengthNotaryDetails (notary) {
 
 function byteLengthAsset (asset) {
   let len = 1 // precision
-  len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
   len += 1 // updateflags
+
+  if (asset.updateflags & utils.ASSET_INIT) {
+    len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
+    len += 8 // max supply
+  }
   if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
     len += varuint.encodingLength(asset.contract.length) + asset.contract.length
     len += varuint.encodingLength(asset.prevcontract.length) + asset.prevcontract.length
@@ -71,9 +76,7 @@ function byteLengthAsset (asset) {
     len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
   }
   if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
-    len += 8 // balance
-    len += 1 // total supply (should be 1 for wire always)
-    len += 8 // max supply
+    len += 8 // total supply
   }
   if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
     len += varuint.encodingLength(asset.notarykeyid.length) + asset.notarykeyid.length
@@ -83,12 +86,7 @@ function byteLengthAsset (asset) {
     len += byteLengthNotaryDetails(asset.notarydetails)
     len += byteLengthNotaryDetails(asset.prevotarydetails)
   }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
-    len += varuint.encodingLength(asset.auxfeekeyid.length) + asset.auxfeekeyid.length
-    len += varuint.encodingLength(asset.prevauxfeekeyid.length) + asset.prevauxfeekeyid.length
-  }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
-    // for auxfeedetails and prevauxfeedetails
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE) {
     len += byteLengthAuxFeeDetails(asset.auxfeedetails)
     len += byteLengthAuxFeeDetails(asset.prevauxfeedetails)
   }
@@ -150,6 +148,8 @@ function serializeAuxFee (auxFee, bufferWriter) {
 }
 
 function serializeAuxFeeDetails (auxFeeDetails, bufferWriter) {
+  bufferWriter.writeVarSlice(auxFeeDetails.auxfeekeyid)
+  bufferWriter.writeVarInt(auxFeeDetails.auxfees.length)
   auxFeeDetails.auxfees.forEach(auxfee => {
     serializeAuxFee(auxfee, bufferWriter)
   })
@@ -159,9 +159,11 @@ function serializeAsset (asset) {
   const buffer = Buffer.allocUnsafe(byteLengthAsset(asset))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
   bufferWriter.writeUInt8(asset.precision)
-  bufferWriter.writeVarSlice(asset.symbol)
   bufferWriter.writeUInt8(asset.updateflags)
-
+  if (asset.updateflags & utils.ASSET_INIT) {
+    bufferWriter.writeVarSlice(asset.symbol)
+    putUint(bufferWriter, utils.compressAmount(asset.maxsupply))
+  }
   if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
     bufferWriter.writeVarSlice(asset.contract)
     bufferWriter.writeVarSlice(asset.prevcontract)
@@ -171,9 +173,7 @@ function serializeAsset (asset) {
     bufferWriter.writeVarSlice(asset.prevpubdata)
   }
   if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
-    putUint(bufferWriter, utils.compressAmount(asset.balance))
     putUint(bufferWriter, utils.compressAmount(asset.totalsupply))
-    putUint(bufferWriter, utils.compressAmount(asset.maxsupply))
   }
   if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
     bufferWriter.writeVarSlice(asset.notarykeyid)
@@ -183,11 +183,7 @@ function serializeAsset (asset) {
     serializeNotaryDetails(asset.notarydetails, bufferWriter)
     serializeNotaryDetails(asset.prevnotarydetails, bufferWriter)
   }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
-    bufferWriter.writeVarSlice(asset.auxfeekeyid)
-    bufferWriter.writeVarSlice(asset.preauxfeekeyid)
-  }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE) {
     serializeAuxFeeDetails(asset.auxfeedetails, bufferWriter)
     serializeAuxFeeDetails(asset.prevauxfeedetails, bufferWriter)
   }
@@ -251,6 +247,7 @@ function deserializeAuxFeeDetails (bufferReaderIn) {
   const bufferReader = bufferReaderIn
   const auxFeeDetails = {} // TODO ts this
   auxFeeDetails.auxfees = []
+  auxFeeDetails.auxfeekeyid = bufferReaderIn.readVarSlice()
   const numAuxFees = bufferReader.readVarInt()
   for (var i = 0; i < numAuxFees; i++) {
     const auxfee = deserializeAuxFee(bufferReader)
@@ -265,9 +262,13 @@ function deserializeAsset (buffer) {
 
   asset.allocation = deserializeAssetAllocations(null, bufferReader)
   asset.precision = bufferReader.readUInt8()
-  asset.symbol = bufferReader.readVarSlice()
   asset.updateflags = bufferReader.readUInt8()
 
+  if (asset.updateflags & utils.ASSET_INIT) {
+    asset.symbol = bufferReader.readVarSlice()
+    const valueSat = readUint(bufferReader)
+    asset.maxsupply = utils.decompressAmount(valueSat)
+  }
   if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
     asset.contract = bufferReader.readVarSlice()
     asset.prevcontract = bufferReader.readVarSlice()
@@ -277,14 +278,8 @@ function deserializeAsset (buffer) {
     asset.prevpubdata = bufferReader.readVarSlice()
   }
   if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
-    var valueSat = readUint(bufferReader)
-    asset.balance = utils.decompressAmount(valueSat)
-
-    valueSat = readUint(bufferReader)
+    const valueSat = readUint(bufferReader)
     asset.totalsupply = utils.decompressAmount(valueSat)
-
-    valueSat = readUint(bufferReader)
-    asset.maxsupply = utils.decompressAmount(valueSat)
   }
   if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
     asset.notarykeyid = bufferReader.readVarSlice()
@@ -294,11 +289,7 @@ function deserializeAsset (buffer) {
     asset.notarydetails = deserializeNotaryDetails(bufferReader)
     asset.prevnotarydetails = deserializeNotaryDetails(bufferReader)
   }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_KEY) {
-    asset.auxfeekeyid = bufferReader.readVarSlice()
-    asset.prevauxfeekeyid = bufferReader.readVarSlice()
-  }
-  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE_DETAILS) {
+  if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE) {
     asset.auxfeedetails = deserializeAuxFeeDetails(bufferReader)
     asset.prevauxdetails = deserializeAuxFeeDetails(bufferReader)
   }

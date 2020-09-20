@@ -16,9 +16,9 @@ const ASSET_UPDATE_CONTRACT = 2 // can you update smart contract?
 const ASSET_UPDATE_SUPPLY = 4 // can you update supply?
 const ASSET_UPDATE_NOTARY_KEY = 8 // can you update notary?
 const ASSET_UPDATE_NOTARY_DETAILS = 16 // can you update notary details?
-const ASSET_UPDATE_AUXFEE_KEY = 32 // can you update aux fees?
-const ASSET_UPDATE_AUXFEE_DETAILS = 64 // can you update aux fees details?
-const ASSET_UPDATE_CAPABILITYFLAGS = 128 // can you update capability flags?
+const ASSET_UPDATE_AUXFEE = 32 // can you update aux fees?
+const ASSET_UPDATE_CAPABILITYFLAGS = 64 // can you update capability flags?
+const ASSET_INIT = 128 // upon asset creation
 function isNonAssetFunded (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
 }
@@ -159,9 +159,9 @@ module.exports = {
   ASSET_UPDATE_SUPPLY: ASSET_UPDATE_SUPPLY,
   ASSET_UPDATE_NOTARY_KEY: ASSET_UPDATE_NOTARY_KEY,
   ASSET_UPDATE_NOTARY_DETAILS: ASSET_UPDATE_NOTARY_DETAILS,
-  ASSET_UPDATE_AUXFEE_KEY: ASSET_UPDATE_AUXFEE_KEY,
-  ASSET_UPDATE_AUXFEE_DETAILS: ASSET_UPDATE_AUXFEE_DETAILS,
+  ASSET_UPDATE_AUXFEE: ASSET_UPDATE_AUXFEE,
   ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS,
+  ASSET_INIT: ASSET_INIT,
   isNonAssetFunded: isNonAssetFunded,
   isAsset: isAsset,
   isAllocationBurn: isAllocationBurn,

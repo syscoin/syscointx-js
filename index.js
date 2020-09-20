@@ -364,23 +364,22 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   } else {
     assetOpts.pubdata = Buffer.from('')
   }
+
   assetOpts.symbol = Buffer.from(utils.encodeToBase64(assetOpts.symbol))
   assetOpts.description = null
   assetOpts.prevcontract = Buffer.from('')
   assetOpts.prevpubdata = Buffer.from('')
   assetOpts.notarykeyid = assetOpts.notarykeyid || Buffer.from('')
   assetOpts.prevnotarykeyid = Buffer.from('')
-  assetOpts.notarydetails = assetOpts.notarydetails || Buffer.from('')
-  assetOpts.prevnotarydetails = Buffer.from('')
-  assetOpts.auxfeekeyid = assetOpts.auxfeekeyid || Buffer.from('')
-  assetOpts.prevauxfeekeyid = Buffer.from('')
-  assetOpts.auxfeedetails = assetOpts.auxfeedetails || Buffer.from('')
-  assetOpts.prevauxfeedetails = Buffer.from('')
+  assetOpts.notarydetails = assetOpts.notarydetails || { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
+  assetOpts.prevnotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
+  assetOpts.auxfeedetails = assetOpts.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfee: [] }
+  assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfee: [] }
   assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || 255
   assetOpts.prevupdatecapabilityflags = 0
   assetOpts.totalsupply = ext.BN_ZERO
 
-  let updateflags = utils.ASSET_UPDATE_SUPPLY | utils.ASSET_UPDATE_CAPABILITYFLAGS
+  let updateflags = utils.ASSET_INIT
   if (assetOpts.contract.length > 0) {
     updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
   }
@@ -393,11 +392,11 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   if (assetOpts.notarydetails.length > 0) {
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
-  if (assetOpts.auxfeekeyid.length > 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
-  }
   if (assetOpts.auxfeedetails.length > 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
+  }
+  if (assetOpts.updatecapabilityflags !== 0) {
+    updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
   }
   assetOpts.updateflags = updateflags
 
@@ -415,7 +414,6 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
   const dataAmount = ext.BN_ZERO
   assetOpts.precision = assetObj.precision
   assetOpts.symbol = Buffer.from('')
-  assetOpts.balance = assetOpts.balance || ext.BN_ZERO
   assetOpts.contract = assetOpts.contract || assetObj.contract
   if (assetOpts.description) {
     assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
@@ -449,18 +447,9 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
     assetOpts.prevnotarydetails = assetObj.notarydetails || Buffer.from('')
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
-  if (!_.isEqual(assetObj.auxfeekeyid, assetOpts.auxfeekeyid)) {
-    assetOpts.prevauxfeekeyid = assetObj.auxfeekeyid || Buffer.from('')
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_KEY
-  }
   if (!_.isEqual(assetObj.auxfeedetails, assetOpts.auxfeedetails)) {
-    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || Buffer.from('')
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE_DETAILS
-  }
-  if (!_.isEqual(assetOpts.balance, ext.BN_ZERO)) {
-    assetOpts.totalsupply = ext.BN_ZERO
-    assetOpts.maxsupply = ext.BN_ZERO
-    updateflags = updateflags | utils.ASSET_UPDATE_SUPPLY
+    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfee: [] }
+    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
   }
   assetOpts.updateflags = updateflags
   const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
