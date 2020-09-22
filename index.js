@@ -129,7 +129,7 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
   const changeOutput = changeOutputs[0]
   const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
   const feeRequired = ext.mul(feeRate, bytesAccum)
-  let feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs, txVersion))
+  let feeFoundInOut = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
   // first output of burn to sys is not accounted for with inputs, its minted based on sysx asset output to burn
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     feeFoundInOut = ext.add(feeFoundInOut, outputs[0].value)
@@ -138,7 +138,7 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
     const reduceFee = ext.sub(feeFoundInOut, feeRequired)
     console.log('optimizeFees: reducing fees by: ' + reduceFee.toNumber())
     // add to change to effectively reduce fee
-    changeOutput.value = ext.add(changeOutput.value)
+    changeOutput.value = ext.add(changeOutput.value, reduceFee)
   } else if (ext.lt(feeFoundInOut, feeRequired)) {
     console.log('optimizeFees: warning, not enough fees found in transaction: required: ' + feeRequired.toNumber() + ' found: ' + feeFoundInOut.toNumber())
   }
