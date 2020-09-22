@@ -840,6 +840,38 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000' },
+      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900' }
+    ],
+    assets: [
+    ]
+  },
+  dataAmount: new BN(10000000000),
+  sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
+  assetMap: new Map([
+    [2615707979, { changeAddress: 'tsys1qjfcltq5yljfzkljxdnlc0ffmhqudz8ltq0z695', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+  ]),
+  expected: {
+    rbf: true,
+    version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
+    numOutputs: 2,
+    script: Buffer.from('6a09014b89e89b01006400', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }], notarysig: Buffer.from('') }]
+    },
+    receivingIndex: 11,
+    changeIndex: 3
+  }
+},
+{
+  description: 'sys to sysx with asset inputs',
+  version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
+  txOpts: {
+    rbf: true
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
       { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000', assetInfo: { assetGuid: 2305793883, value: '90000000' } },
       { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: 2369540753, value: '10000000' } }
     ],
