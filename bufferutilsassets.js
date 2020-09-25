@@ -122,8 +122,10 @@ function byteLengthAssetAllocation (assetAllocations) {
 
 function byteLengthMintSyscoin (mintSyscoin) {
   let len = 0
+  len += varuint.encodingLength(mintSyscoin.txroot.length) + mintSyscoin.txroot.length
   len += varuint.encodingLength(mintSyscoin.txparentnodes.length) + mintSyscoin.txparentnodes.length
   len += varuint.encodingLength(mintSyscoin.txpath.length) + mintSyscoin.txpath.length
+  len += varuint.encodingLength(mintSyscoin.receiptroot.length) + mintSyscoin.receiptroot.length
   len += varuint.encodingLength(mintSyscoin.receiptparentnodes.length) + mintSyscoin.receiptparentnodes.length
   len += 4 // block number
   len += 4 // bridge xfer id
@@ -335,6 +337,8 @@ function serializeMintSyscoin (mintSyscoin) {
   bufferWriter.writeVarSlice(mintSyscoin.txpath)
   bufferWriter.writeUInt16(mintSyscoin.receiptpos)
   bufferWriter.writeVarSlice(mintSyscoin.receiptparentnodes)
+  bufferWriter.writeVarSlice(mintSyscoin.txroot)
+  bufferWriter.writeVarSlice(mintSyscoin.receiptroot)
 
   // need to slice because of compress varInt functionality in PutUint which is not accounted for in byteLengthMintSyscoin
   return buffer.slice(0, bufferWriter.offset)
@@ -352,7 +356,8 @@ function deserializeMintSyscoin (buffer) {
   mintSyscoin.txpath = bufferReader.readVarSlice()
   mintSyscoin.receiptpos = bufferReader.readUInt16()
   mintSyscoin.receiptparentnodes = bufferReader.readVarSlice()
-
+  mintSyscoin.txroot = bufferReader.readVarSlice()
+  mintSyscoin.receiptroot = bufferReader.readVarSlice()
   return mintSyscoin
 }
 
