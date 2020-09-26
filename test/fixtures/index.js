@@ -121,6 +121,43 @@ module.exports = [{
   }
 },
 {
+  description: 'send asset with zero val input',
+  version: utils.SYSCOIN_TX_VERSION_ASSET_SEND,
+  txOpts: {
+    rbf: true
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, address: '001462621943decf05bd265f6c352db0e42f73a60f68', value: '5000', assetInfo: { assetGuid: 1635229536, value: '886' } },
+      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 1, address: '001462621943decf05bd265f6c352db0e42f73a60f68', value: '690', assetInfo: { assetGuid: 1635229536, value: '0' } }
+    ],
+    assets: [
+      {
+        assetGuid: 1635229536,
+        decimals: 8,
+        pubData: { desc: utils.encodeToBase64('publicvalue') },
+        symbol: utils.encodeToBase64('CAT'),
+        updateCapabilityFlags: 127,
+        totalSupply: '0',
+        maxSupply: '100000000000'
+      }
+    ]
+  },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', outputs: [{ value: new BN(1000000000), address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' }, { value: new BN(0), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
+  ]),
+  expected: {
+    rbf: true,
+    numOutputs: 4,
+    script: Buffer.from('6a0e01609f776103000a010003bd2300', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 0, value: new BN(1000000000) }, { n: 1, value: new BN(0) }, { n: 3, value: new BN(886) }], notarysig: Buffer.from('') }]
+    }
+  }
+},
+{
   description: 'send asset allocation',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
   txOpts: {
