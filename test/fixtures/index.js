@@ -994,9 +994,9 @@ module.exports = [{
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
     numOutputs: 3,
-    script: Buffer.from('6a0b014b89e89b020064015800', 'hex'),
+    script: Buffer.from('6a0b014b89e89b020064025800', 'hex'),
     asset: {
-      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }, { n: 1, value: new BN(90000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: 2615707979, values: [{ n: 0, value: new BN(10000000000) }, { n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
