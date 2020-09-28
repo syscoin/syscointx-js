@@ -690,6 +690,44 @@ module.exports = [{
   }
 },
 {
+  description: 'burn asset allocation to syscoin with 0 val input',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
+  txOpts: {
+    rbf: true
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '690', assetInfo: { assetGuid: 1635229536, value: '1000000000' } },
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '113889979672', assetInfo: { assetGuid: 1635229536, value: '0' } }
+    ],
+    assets: [
+      {
+        assetGuid: 1635229536,
+        decimals: 8,
+        pubData: { desc: utils.encodeToBase64('publicvalue') },
+        symbol: utils.encodeToBase64('CAT'),
+        updateCapabilityFlags: 127,
+        totalSupply: '0',
+        maxSupply: '100000000000'
+      }
+    ]
+  },
+  assetOpts: { ethaddress: Buffer.from('', 'hex') },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1) }] }]
+  ]),
+  expected: {
+    rbf: true,
+    numOutputs: 4,
+    script: Buffer.from('6a1201609f776103010102a0c2c3b27703000000', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: 1635229536, values: [{ n: 1, value: new BN(1) }, { n: 2, value: new BN(999999999) }, { n: 3, value: new BN(0) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+    }
+  }
+},
+{
   description: 'burn asset allocation to ethereum',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
   txOpts: {
