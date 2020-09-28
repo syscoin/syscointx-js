@@ -258,14 +258,10 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     value: dataAmount
   }
   outputs.push(dataOutput)
-  let res = coinSelect.coinSelect(utxos.utxos, inputs, outputs, feeRate, utxos.assets, txVersion)
+  const res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets, assetMap)
   if (!res.inputs || !res.outputs) {
-    console.log('createAssetTransaction: inputs or outputs are empty after coinSelect trying to fund with asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets, assetMap)
-    if (!res.inputs || !res.outputs) {
-      console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
-      return null
-    }
+    console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
+    return null
   }
   inputs = res.inputs
   outputs = res.outputs
