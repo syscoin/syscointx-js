@@ -504,9 +504,16 @@ function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
-function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, dataAmount, feeRate) {
+function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
+  let dataAmount = ext.BN_ZERO
+  for (const valueAssetObj of assetMap.values()) {
+    if (valueAssetObj.outputs.length > 0) {
+      dataAmount = valueAssetObj.outputs[0].value
+    }
+    break
+  }
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 

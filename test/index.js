@@ -142,7 +142,7 @@ fixtures.forEach(function (f) {
     }
     if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
       utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
-      const res = syscointx.syscoinBurnToAssetAllocation(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.dataAmount, f.feeRate)
+      const res = syscointx.syscoinBurnToAssetAllocation(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
