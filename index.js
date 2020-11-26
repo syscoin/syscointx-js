@@ -273,7 +273,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       outputs[0].value = burnAllocationValue
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    assetAllocations[0].assetGuid = utils.generateAssetGuid(inputs[0])
+    assetAllocations[0].assetGuid = txOpts.assetGuid || utils.generateAssetGuid(inputs[0])
     const assetOutput = outputs.filter(output => output.assetInfo && output.assetInfo.assetGuid === 0)
     if (assetOutput.length !== 1) {
       console.log('createAssetTransaction: invalid number of asset outputs for activate')
