@@ -1,11 +1,11 @@
-var BN = require('bn.js')
-var slice = Array.prototype.slice
+const BN = require('bn.js')
+const slice = Array.prototype.slice
 
-var BN_ZERO = new BN(0)
-var BN_ONE = new BN(1)
+const BN_ZERO = new BN(0)
+const BN_ONE = new BN(1)
 
 function add () {
-  var args = slice.call(arguments)
+  const args = slice.call(arguments)
   return args.reduce(_add)
 }
 
@@ -15,7 +15,7 @@ function _add (a, b) {
 }
 
 function sub () {
-  var args = slice.call(arguments)
+  const args = slice.call(arguments)
   return args.reduce(_sub)
 }
 
@@ -25,7 +25,7 @@ function _sub (a, b) {
 }
 
 function mul () {
-  var args = slice.call(arguments)
+  const args = slice.call(arguments)
   return args.reduce(_mul)
 }
 
@@ -35,7 +35,7 @@ function _mul (a, b) {
 }
 
 function div () {
-  var args = slice.call(arguments)
+  const args = slice.call(arguments)
   return args.reduce(_div)
 }
 

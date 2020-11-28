@@ -1,4 +1,4 @@
-var BN = require('bn.js')
+const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128

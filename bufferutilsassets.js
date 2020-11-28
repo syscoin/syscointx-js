@@ -209,7 +209,7 @@ function deserializeAssetVout (bufferReader) {
   const assetGuid = bufferReader.readUInt32()
   const numOutputs = bufferReader.readVarInt()
   const values = []
-  for (var j = 0; j < numOutputs; j++) {
+  for (let j = 0; j < numOutputs; j++) {
     values.push(deserializeAssetVoutValue(bufferReader))
   }
   const notarysig = bufferReader.readVarSlice()
@@ -220,7 +220,7 @@ function deserializeAssetAllocations (buffer, bufferReaderIn) {
   const bufferReader = bufferReaderIn || new bufferUtils.BufferReader(buffer)
   const assetAllocations = [] // TODO ts this
   const numAllocations = bufferReader.readVarInt()
-  for (var i = 0; i < numAllocations; i++) {
+  for (let i = 0; i < numAllocations; i++) {
     const voutAsset = deserializeAssetVout(bufferReader)
     assetAllocations.push(voutAsset)
   }
@@ -239,7 +239,7 @@ function deserializeNotaryDetails (bufferReaderIn) {
 function deserializeAuxFee (bufferReaderIn) {
   const bufferReader = bufferReaderIn
   const auxFee = {} // TODO ts this
-  var valueSat = readUint(bufferReader)
+  const valueSat = readUint(bufferReader)
   auxFee.bound = utils.decompressAmount(valueSat)
   auxFee.percent = bufferReader.readUInt16()
   return auxFee
@@ -251,7 +251,7 @@ function deserializeAuxFeeDetails (bufferReaderIn) {
   auxFeeDetails.auxfees = []
   auxFeeDetails.auxfeekeyid = bufferReaderIn.readVarSlice()
   const numAuxFees = bufferReader.readVarInt()
-  for (var i = 0; i < numAuxFees; i++) {
+  for (let i = 0; i < numAuxFees; i++) {
     const auxfee = deserializeAuxFee(bufferReader)
     auxFeeDetails.auxfees.push(auxfee)
   }

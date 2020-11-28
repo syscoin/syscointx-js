@@ -1,4 +1,4 @@
-var BN = require('bn.js')
+const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const utils = require('./utils')
 const syscoinBufferUtils = require('./bufferutilsassets.js')
@@ -87,7 +87,7 @@ function optimizeOutputs (outputs, assetAllocations) {
   changeOutputs.forEach(output => {
     // for every asset output and find any where the allocation index and change output index don't match
     // make the allocation point to the syscoin change output and we can delete the asset output (it sends dust anyway)
-    for (var i = 0; i < assetChangeOutputs.length; i++) {
+    for (let i = 0; i < assetChangeOutputs.length; i++) {
       const assetOutput = assetChangeOutputs[i]
       // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
       const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === assetOutput.assetInfo.assetGuid)
@@ -153,7 +153,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
   let opReturnScript = null
   let dataScript = null
   let opReturnIndex = 0
-  for (var i = 0; i < outputs.length; i++) {
+  for (let i = 0; i < outputs.length; i++) {
     const output = outputs[i]
     if (!output.script) {
       continue
@@ -508,11 +508,9 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
   let dataAmount = ext.BN_ZERO
-  for (const valueAssetObj of assetMap.values()) {
-    if (valueAssetObj.outputs.length > 0) {
-      dataAmount = valueAssetObj.outputs[0].value
-    }
-    break
+  const valueAssetObj = assetMap.values().next().value
+  if (valueAssetObj.outputs.length > 0) {
+    dataAmount = valueAssetObj.outputs[0].value
   }
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

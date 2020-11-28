@@ -1,5 +1,5 @@
-var BN = require('bn.js')
-var utils = require('../../utils')
+const BN = require('bn.js')
+const utils = require('../../utils')
 const scalarPct = 1000
 const COIN = 100000000
 module.exports = [{

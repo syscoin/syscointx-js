@@ -1,8 +1,8 @@
 
-var syscointx = require('..')
-var fixtures = require('./fixtures')
-var tape = require('tape')
-var utils = require('../utils')
+const syscointx = require('..')
+const fixtures = require('./fixtures')
+const tape = require('tape')
+const utils = require('../utils')
 const bitcoin = require('bitcoinjs-lib')
 const bitcoinops = require('bitcoin-ops')
 const syscoinBufferUtils = require('../bufferutilsassets.js')
@@ -135,8 +135,8 @@ tape.test('Assertions with tape.', (assert) => {
 })
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
-    var utxos = f.utxoObj
-    var txOpts = f.txOpts
+    let utxos = f.utxoObj
+    let txOpts = f.txOpts
     if (!txOpts) {
       txOpts = { rbf: false }
     }
