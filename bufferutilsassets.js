@@ -65,7 +65,7 @@ function byteLengthAsset (asset) {
 
   if (asset.updateflags & utils.ASSET_INIT) {
     len += varuint.encodingLength(asset.symbol.length) + asset.symbol.length
-    len += 8 // max supply
+    len += 16 // max supply pad 8 extra bytes for variance on varint + 8 byte max value
   }
   if (asset.updateflags & utils.ASSET_UPDATE_CONTRACT) {
     len += varuint.encodingLength(asset.contract.length) + asset.contract.length
@@ -76,7 +76,7 @@ function byteLengthAsset (asset) {
     len += varuint.encodingLength(asset.prevpubdata.length) + asset.prevpubdata.length
   }
   if (asset.updateflags & utils.ASSET_UPDATE_SUPPLY) {
-    len += 8 // total supply
+    len += 16 // total supply
   }
   if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_KEY) {
     len += varuint.encodingLength(asset.notarykeyid.length) + asset.notarykeyid.length
@@ -84,7 +84,7 @@ function byteLengthAsset (asset) {
   }
   if (asset.updateflags & utils.ASSET_UPDATE_NOTARY_DETAILS) {
     len += byteLengthNotaryDetails(asset.notarydetails)
-    len += byteLengthNotaryDetails(asset.prevotarydetails)
+    len += byteLengthNotaryDetails(asset.prevnotarydetails)
   }
   if (asset.updateflags & utils.ASSET_UPDATE_AUXFEE) {
     len += byteLengthAuxFeeDetails(asset.auxfeedetails)
@@ -99,7 +99,7 @@ function byteLengthAsset (asset) {
 
 function byteLengthAssetVoutValue () {
   let len = 4 // 4 byte n
-  len += 8 // 8 byte value
+  len += 16 // 8 byte value + varint variance to be safe
   return len
 }
 
