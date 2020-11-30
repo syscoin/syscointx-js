@@ -50,7 +50,17 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
   const outputs = res.outputs
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
-  if (txOpts && txOpts.rbf) {
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+    // ensure ZDAG is only enable for transactions <= 1100 bytes
+    const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
+    // if size too large we ensure ZDAG isn't set by enabling RBF (disable ZDAG)
+    if (bytesAccum > 1100) {
+      if (!txOpts.rbf) {
+        txOpts.rbf = true
+      }
+    }
+  }
+  if (txOpts.rbf) {
     inputs.forEach(input => {
       input.sequence = utils.MAX_BIP125_RBF_SEQUENCE
     })
@@ -326,7 +336,17 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     txOpts.rbf = false
   }
 
-  if (txOpts && txOpts.rbf) {
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+    // ensure ZDAG is only enable for transactions <= 1100 bytes
+    const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
+    // if size too large we ensure ZDAG isn't set by enabling RBF (disable ZDAG)
+    if (bytesAccum > 1100) {
+      if (!txOpts.rbf) {
+        txOpts.rbf = true
+      }
+    }
+  }
+  if (txOpts.rbf) {
     inputs.forEach(input => {
       input.sequence = utils.MAX_BIP125_RBF_SEQUENCE
     })
