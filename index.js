@@ -391,7 +391,7 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   assetOpts.prevnotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
   assetOpts.auxfeedetails = assetOpts.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfee: [] }
   assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfee: [] }
-  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || 127
+  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || utils.ASSET_CAPABILITY_ALL
   assetOpts.prevupdatecapabilityflags = 0
   assetOpts.totalsupply = ext.BN_ZERO
 
