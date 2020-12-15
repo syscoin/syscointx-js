@@ -156,6 +156,9 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
 
 // update all notarizations stored in assets map (as notarysig field) into re-serialized output scripts
 function addNotarizationSignatures (txVersion, assets, outputs) {
+  if (!utils.isAssetAllocationTx(txVersion)) {
+    return -1
+  }
   // if no sigs then just return, not applicable to notarizing
   if (assets.size === 0) {
     return -1
@@ -181,31 +184,19 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     return -1
   }
 
-  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
-    const mintSyscoin = syscoinBufferUtils.deserializeMintSyscoin(opReturnScript)
-    const assetAllocations = mintSyscoin.allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript)
+    const assetAllocations = allocationBurn.allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
     if (assetAllocations !== undefined) {
       assetAllocations.forEach(assetAllocation => {
         assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
       })
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-      const mintBuffer = syscoinBufferUtils.serializeMintSyscoin(mintSyscoin)
-      const buffArr = [assetAllocationsBuffer, mintBuffer]
+      const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
+      const buffArr = [assetAllocationsBuffer, allocationBurnBuffer]
       dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
     }
-  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-    const burnToEthereum = syscoinBufferUtils.deserializeAllocationBurnToEthereum(opReturnScript)
-    const assetAllocations = burnToEthereum.allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
-    if (assetAllocations !== undefined) {
-      assetAllocations.forEach(assetAllocation => {
-        assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
-      })
-      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-      const burnToEthereumBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(burnToEthereum)
-      const buffArr = [assetAllocationsBuffer, burnToEthereumBuffer]
-      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
-    }
-  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
     const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
     const assetAllocations = allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
     if (assetAllocations !== undefined) {
@@ -493,7 +484,7 @@ function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN
   }
   const dataAmount = ext.BN_ZERO
-  const dataBuffer = syscoinBufferUtils.serializeAllocationBurnToEthereum(assetOpts)
+  const dataBuffer = syscoinBufferUtils.serializeAllocationBurn(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 

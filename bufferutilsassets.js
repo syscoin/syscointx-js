@@ -134,8 +134,8 @@ function byteLengthMintSyscoin (mintSyscoin) {
   return len
 }
 
-function byteLengthSyscoinBurnToEthereum (syscoinBurnToEtereum) {
-  return varuint.encodingLength(syscoinBurnToEtereum.ethaddress.length) + syscoinBurnToEtereum.ethaddress.length
+function byteLengthAllocationBurn (allocationBurn) {
+  return varuint.encodingLength(allocationBurn.ethaddress.length) + allocationBurn.ethaddress.length
 }
 
 function serializeNotaryDetails (notaryDetails, bufferWriter) {
@@ -361,20 +361,20 @@ function deserializeMintSyscoin (buffer) {
   return mintSyscoin
 }
 
-function serializeAllocationBurnToEthereum (syscoinBurnToEthereum) {
-  const buffer = Buffer.allocUnsafe(byteLengthSyscoinBurnToEthereum(syscoinBurnToEthereum))
+function serializeAllocationBurn (allocationBurn) {
+  const buffer = Buffer.allocUnsafe(byteLengthAllocationBurn(allocationBurn))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-  bufferWriter.writeVarSlice(syscoinBurnToEthereum.ethaddress)
+  bufferWriter.writeVarSlice(allocationBurn.ethaddress)
   return buffer
 }
 
-function deserializeAllocationBurnToEthereum (buffer) {
+function deserializeAllocationBurn (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
-  const syscoinBurnToEthereum = {} // TODO ts this
+  const allocationBurn = {} // TODO ts this
 
-  syscoinBurnToEthereum.allocation = deserializeAssetAllocations(null, bufferReader)
-  syscoinBurnToEthereum.ethaddress = bufferReader.readVarSlice()
-  return syscoinBurnToEthereum
+  allocationBurn.allocation = deserializeAssetAllocations(null, bufferReader)
+  allocationBurn.ethaddress = bufferReader.readVarSlice()
+  return allocationBurn
 }
 
 module.exports = {
@@ -383,7 +383,7 @@ module.exports = {
   serializeAssetAllocations: serializeAssetAllocations,
   serializeMintSyscoin: serializeMintSyscoin,
   deserializeMintSyscoin: deserializeMintSyscoin,
-  serializeAllocationBurnToEthereum: serializeAllocationBurnToEthereum,
-  deserializeAllocationBurnToEthereum: deserializeAllocationBurnToEthereum,
+  serializeAllocationBurn: serializeAllocationBurn,
+  deserializeAllocationBurn: deserializeAllocationBurn,
   deserializeAssetAllocations: deserializeAssetAllocations
 }

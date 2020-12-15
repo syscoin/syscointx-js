@@ -29,6 +29,9 @@ function isAsset (txVersion) {
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
 }
+function isAssetAllocationTx (txVersion) {
+  return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_SEND
+}
 function USHRT_MAX () {
   return 65535
 }
@@ -167,6 +170,7 @@ module.exports = {
   isNonAssetFunded: isNonAssetFunded,
   isAsset: isAsset,
   isAllocationBurn: isAllocationBurn,
+  isAssetAllocationTx: isAssetAllocationTx,
   MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
 
 }
