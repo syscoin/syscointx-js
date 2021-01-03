@@ -110,10 +110,6 @@ function decodeFromBase64ToASCII (input) {
   return Buffer.from(input, 'base64').toString()
 }
 
-function decodeFromBase64ToHex (input) {
-  return Buffer.from(input, 'base64').toString('hex')
-}
-
 function decodeFieldsFromPubData (jsonData) {
   const res = {}
   if (jsonData.desc) {
@@ -142,7 +138,6 @@ module.exports = {
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
   decodeFromBase64ToASCII: decodeFromBase64ToASCII,
-  decodeFromBase64ToHex: decodeFromBase64ToHex,
   encodePubDataFromFields: encodePubDataFromFields,
   decodeFieldsFromPubData: decodeFieldsFromPubData,
   compressAmount: compressAmount,

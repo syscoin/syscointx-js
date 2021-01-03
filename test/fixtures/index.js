@@ -92,8 +92,8 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: 'befed752e1444b66fd91dd121f772d0f2f081c579f04b419eb18960dcd55e84f', vout: 2, address: '0014fb1a61908e16c8c5ad306b6d8ef11a6cc4f91ff5', value: '84900000000' },
-      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, address: '001462621943decf05bd265f6c352db0e42f73a60f68', value: '99999593', assetInfo: { assetGuid: 1635229536, value: '0' } }
+      { txid: 'befed752e1444b66fd91dd121f772d0f2f081c579f04b419eb18960dcd55e84f', vout: 2, address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', value: '84900000000' },
+      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', value: '99999593', assetInfo: { assetGuid: 1635229536, value: '0' } }
     ],
     assets: [
       {
@@ -129,8 +129,8 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, address: '001462621943decf05bd265f6c352db0e42f73a60f68', value: '5000', assetInfo: { assetGuid: 1635229536, value: '886' } },
-      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 1, address: '001462621943decf05bd265f6c352db0e42f73a60f68', value: '690', assetInfo: { assetGuid: 1635229536, value: '0' } }
+      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 0, address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', value: '5000', assetInfo: { assetGuid: 1635229536, value: '886' } },
+      { txid: '5e9c72abf1d3df7ac5f673de603cd7946b25e58de8e8f87a852ba291790a5181', vout: 1, address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', value: '690', assetInfo: { assetGuid: 1635229536, value: '0' } }
     ],
     assets: [
       {
@@ -217,7 +217,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -232,7 +232,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -247,7 +247,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -262,7 +262,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -277,7 +277,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -340,7 +340,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -355,7 +355,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -370,7 +370,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -385,7 +385,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -400,7 +400,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -468,7 +468,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -483,7 +483,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -498,7 +498,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 1,
@@ -513,7 +513,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -528,7 +528,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -552,7 +552,7 @@ module.exports = [{
         updateCapabilityFlags: 127,
         totalSupply: '0',
         maxSupply: '100000000000',
-        notaryKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+        notaryKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
         notaryDetails: {
           endPoint: 'https://test.com',
           instantTransfers: 0,
@@ -608,7 +608,7 @@ module.exports = [{
         totalSupply: '0',
         maxSupply: '100000000000',
         auxFeeDetails: {
-          auxFeeKeyID: 'ea6d525c0c955d90d3dbd29a81ef8bfb79003727',
+          auxFeeKeyID: '6m1SXAyVXZDT29Kage+L+3kANyc=',
           auxFees: [{
             bound: 0,
             percent: 1 * scalarPct

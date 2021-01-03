@@ -16,7 +16,7 @@ function testPair (dec, enc) {
 const syscoinNetworks = {
   mainnet: {
     messagePrefix: '\x18Syscoin Signed Message:\n',
-    bech32: 'sys',
+    bech32: 'bc',
     bip32: {
       public: 0x0488b21e,
       private: 0x0488ade4
@@ -37,27 +37,32 @@ const syscoinNetworks = {
     wif: 0xef
   }
 }
-function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
+function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZeroConf) {
   if (!txOpts) {
     txOpts = { rbf: false }
   }
   const sanitizedUtxos = { utxos: [] }
+  if (Array.isArray(utxoObj)) {
+    utxoObj.utxos = utxoObj
+  }
   if (utxoObj.assets) {
     sanitizedUtxos.assets = new Map()
     utxoObj.assets.forEach(asset => {
       const assetObj = {}
       if (asset.contract) {
+        asset.contract = asset.contract.replace(/^0x/, '')
         assetObj.contract = Buffer.from(asset.contract, 'hex')
       }
       if (asset.pubData) {
         assetObj.pubdata = Buffer.from(JSON.stringify(asset.pubData))
       }
       if (asset.notaryKeyID) {
-        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'hex')
-        assetObj.notaryaddress = bitcoin.payments.p2wpkh({ hash: assetObj.notarykeyid, network: syscoinNetworks.testnet }).address
+        assetObj.notarykeyid = Buffer.from(asset.notaryKeyID, 'base64')
+        network = network || syscoinNetworks.mainnet
+        assetObj.notaryaddress = bitcoin.payments.p2wpkh({ hash: assetObj.notarykeyid, network: network }).address
         // in unit tests notarySig may be provided
         if (asset.notarySig) {
-          assetObj.notarysig = Buffer.from(asset.notarySig, 'hex')
+          assetObj.notarysig = Buffer.from(asset.notarySig, 'base64')
         } else {
           // prefill in this likely case where notarySig isn't provided
           assetObj.notarysig = Buffer.alloc(65, 0)
@@ -73,11 +78,10 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
         assetObj.notarydetails.instanttransfers = asset.notaryDetails.instantTransfers
         assetObj.notarydetails.hdrequired = asset.notaryDetails.HDRequired
       }
-
       if (asset.auxFeeDetails) {
         assetObj.auxfeedetails = {}
         if (asset.auxFeeDetails.auxFeeKeyID) {
-          assetObj.auxfeedetails.auxfeekeyid = Buffer.from(asset.auxFeeDetails.auxFeeKeyID, 'hex')
+          assetObj.auxfeedetails.auxfeekeyid = Buffer.from(asset.auxFeeDetails.auxFeeKeyID, 'base64')
           assetObj.auxfeedetails.auxfeeaddress = bitcoin.payments.p2wpkh({ hash: assetObj.auxfeedetails.auxfeekeyid, network: syscoinNetworks.testnet }).address
         } else {
           assetObj.auxfeedetails.auxfeekeyid = Buffer.from('')
@@ -87,6 +91,7 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
       if (asset.updateCapabilityFlags) {
         assetObj.updatecapabilityflags = asset.updateCapabilityFlags
       }
+
       assetObj.maxsupply = new BN(asset.maxSupply)
       assetObj.precision = asset.decimals
       sanitizedUtxos.assets.set(asset.assetGuid, assetObj)
@@ -98,7 +103,13 @@ function sanitizeBlockbookUTXOs (utxoObj, txOpts, assetMap) {
         console.log('SKIPPING utxo: no address field defined')
         return
       }
-      const newUtxo = { type: 'BECH32', address: utxo.address, txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime }
+      if (excludeZeroConf && utxo.confirmations <= 0) {
+        return
+      }
+      const newUtxo = { type: 'LEGACY', address: utxo.address, txId: utxo.txid, path: utxo.path, vout: utxo.vout, value: new BN(utxo.value), locktime: utxo.locktime }
+      if (newUtxo.address.startsWith(network.bech32)) {
+        newUtxo.type = 'BECH32'
+      }
       if (utxo.assetInfo) {
         newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
         const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
@@ -141,7 +152,7 @@ fixtures.forEach(function (f) {
       txOpts = { rbf: false }
     }
     if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.syscoinBurnToAssetAllocation(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -157,7 +168,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetNew(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -174,7 +185,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_UPDATE) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetUpdate(f.assetGuid, f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -191,7 +202,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ASSET_SEND) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -207,7 +218,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationMint(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -224,7 +235,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationBurn(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -241,7 +252,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts, f.assetMap)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
@@ -257,7 +268,7 @@ fixtures.forEach(function (f) {
         }
       })
     } else if (f.version === 2) {
-      utxos = sanitizeBlockbookUTXOs(utxos, txOpts)
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts)
       const res = syscointx.createTransaction(txOpts, utxos, f.sysChangeAddress, f.outputs, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.expected.version)
