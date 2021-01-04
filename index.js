@@ -186,7 +186,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
 
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript)
-    const assetAllocations = allocationBurn.allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
+    const assetAllocations = allocationBurn.allocation.filter(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
     if (assetAllocations !== undefined) {
       assetAllocations.forEach(assetAllocation => {
         assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
@@ -198,7 +198,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
     const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
-    const assetAllocations = allocation.find(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
+    const assetAllocations = allocation.filter(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
     if (assetAllocations !== undefined) {
       assetAllocations.forEach(assetAllocation => {
         assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
