@@ -275,7 +275,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
     assetAllocations[0].assetGuid = txOpts.assetGuid || utils.generateAssetGuid(inputs[0])
-    const assetOutput = outputs.filter(output => output.assetInfo && output.assetInfo.assetGuid === 0)
+    const assetOutput = outputs.filter(output => output.assetInfo && output.assetInfo.assetGuid === '0')
     if (assetOutput.length !== 1) {
       console.log('createAssetTransaction: invalid number of asset outputs for activate')
       return null
@@ -283,8 +283,8 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     // update outputs
     assetOutput[0].assetInfo.assetGuid = assetAllocations[0].assetGuid
     // update assetMap with new key
-    const oldAssetMapEntry = assetMap.get(0)
-    assetMap.delete(0)
+    const oldAssetMapEntry = assetMap.get('0')
+    assetMap.delete('0')
     assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
 

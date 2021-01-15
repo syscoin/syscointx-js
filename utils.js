@@ -131,7 +131,7 @@ function generateAssetGuid (input) {
   bigNum = ext.add(bigNum, new BN(input.vout))
   // clear bits 33 and up to keep low 32 bits
   bigNum = bigNum.maskn(32)
-  return bigNum.toNumber()
+  return bigNum.toString(10)
 }
 
 module.exports = {
