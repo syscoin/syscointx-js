@@ -595,12 +595,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: 'c6e7702f1ab817bacf81e5678ba89e0b43a8a7b6f56c4c055aa8aeda87197a62', vout: 0, address: '0014712a0433b3be8c2860db2d313c44fa1967542780', value: '980', assetInfo: { assetGuid: 1635229536, value: '1000000000' } },
+      { txid: 'c6e7702f1ab817bacf81e5678ba89e0b43a8a7b6f56c4c055aa8aeda87197a62', vout: 0, address: '0014712a0433b3be8c2860db2d313c44fa1967542780', value: '980', assetInfo: { assetGuid: '1635229536', value: '1000000000' } },
       { txid: '2cf903537c6c161a1c65d940758b63efd4706fc8f78eb21d252612407e59e865', vout: 0, address: '0014ab0ed68aa74cc422d69e4d675eb029ab93211c4c', value: '100000000' }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -640,7 +640,7 @@ module.exports = [{
   },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
   ]),
   expected: {
     rbf: false,
@@ -660,12 +660,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '980', assetInfo: { assetGuid: 1635229536, value: '600000000' } },
-      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '99999771', assetInfo: { assetGuid: 1635229536, value: '400000000' } }
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '980', assetInfo: { assetGuid: '1635229536', value: '600000000' } },
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '99999771', assetInfo: { assetGuid: '1635229536', value: '400000000' } }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -678,7 +678,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000) }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(500000000) }] }]
   ]),
   expected: {
     rbf: true,
@@ -698,12 +698,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '690', assetInfo: { assetGuid: 1635229536, value: '1000000000' } },
-      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '113889979672', assetInfo: { assetGuid: 1635229536, value: '0' } }
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '690', assetInfo: { assetGuid: '1635229536', value: '1000000000' } },
+      { txid: 'e77901b5181e1ac5dc428d43ccc7e677c8c9179b982c779464e95c3190054c0e', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '113889979672', assetInfo: { assetGuid: '1635229536', value: '0' } }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -716,7 +716,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1) }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1) }] }]
   ]),
   expected: {
     rbf: true,
@@ -736,11 +736,11 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: 1635229536, value: '900000000' } }
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: '1635229536', value: '900000000' } }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -753,7 +753,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
     rbf: true,
@@ -774,12 +774,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '980', assetInfo: { assetGuid: 1635229536, value: '900000000' } },
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '980', assetInfo: { assetGuid: '1635229536', value: '900000000' } },
       { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914' }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -792,7 +792,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
     rbf: true,
@@ -813,12 +813,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '980', assetInfo: { assetGuid: 1635229536, value: '900000000' } },
-      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: 1635229536, value: '800000000' } }
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '980', assetInfo: { assetGuid: '1635229536', value: '900000000' } },
+      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: '1635229536', value: '800000000' } }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -831,7 +831,7 @@ module.exports = [{
   assetOpts: { ethaddress: Buffer.from('9667de58c15475626165eaa4c9970e409e1181d0', 'hex') },
   sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
   assetMap: new Map([
-    [1635229536, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(100000000) }] }]
   ]),
   expected: {
     rbf: true,
@@ -852,12 +852,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: 2305793883, value: '90000000' } },
-      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: 2369540753, value: '10000000' } }
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: '2305793883', value: '90000000' } },
+      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: '2369540753', value: '10000000' } }
     ],
     assets: [
       {
-        assetGuid: 2305793883,
+        assetGuid: '2305793883',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -866,7 +866,7 @@ module.exports = [{
         maxSupply: '100000000000'
       },
       {
-        assetGuid: 2369540753,
+        assetGuid: '2369540753',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -889,7 +889,7 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    [2615707979, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
@@ -927,7 +927,7 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    [2615707979, { changeAddress: 'tsys1qjfcltq5yljfzkljxdnlc0ffmhqudz8ltq0z695', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'tsys1qjfcltq5yljfzkljxdnlc0ffmhqudz8ltq0z695', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
@@ -950,12 +950,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000', assetInfo: { assetGuid: 2305793883, value: '90000000' } },
-      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: 2369540753, value: '10000000' } }
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000', assetInfo: { assetGuid: '2305793883', value: '90000000' } },
+      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: '2369540753', value: '10000000' } }
     ],
     assets: [
       {
-        assetGuid: 2305793883,
+        assetGuid: '2305793883',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -964,7 +964,7 @@ module.exports = [{
         maxSupply: '100000000000'
       },
       {
-        assetGuid: 2369540753,
+        assetGuid: '2369540753',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -976,7 +976,7 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    [2615707979, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
@@ -997,12 +997,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '10000000000', assetInfo: { assetGuid: 2615707979, value: '90000000' } },
-      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: 2369540753, value: '10000000' } }
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '10000000000', assetInfo: { assetGuid: '2615707979', value: '90000000' } },
+      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900', assetInfo: { assetGuid: '2369540753', value: '10000000' } }
     ],
     assets: [
       {
-        assetGuid: 2615707979,
+        assetGuid: '2615707979',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -1011,7 +1011,7 @@ module.exports = [{
         maxSupply: '100000000000'
       },
       {
-        assetGuid: 2369540753,
+        assetGuid: '2369540753',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -1023,7 +1023,7 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    [2615707979, { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
@@ -1067,12 +1067,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: 1635229536, value: '900000000' } },
-      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: 1635229536, value: '800000000' } }
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: '1635229536', value: '900000000' } },
+      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914', assetInfo: { assetGuid: '1635229536', value: '800000000' } }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),
@@ -1105,12 +1105,12 @@ module.exports = [{
   feeRate: new BN(10),
   utxoObj: {
     utxos: [
-      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: 1635229536, value: '900000000' } },
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000', assetInfo: { assetGuid: '1635229536', value: '900000000' } },
       { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914' }
     ],
     assets: [
       {
-        assetGuid: 1635229536,
+        assetGuid: '1635229536',
         decimals: 8,
         pubData: { desc: utils.encodeToBase64('publicvalue') },
         symbol: utils.encodeToBase64('CAT'),

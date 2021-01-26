@@ -7,6 +7,7 @@ const bitcoin = require('bitcoinjs-lib')
 const bitcoinops = require('bitcoin-ops')
 const syscoinBufferUtils = require('../bufferutilsassets.js')
 const BN = require('bn.js')
+const coinSelect = require('coinselectsyscoin')
 // test compress/uncompress
 function testPair (dec, enc) {
   return utils.compressAmount(dec).eq(enc) &&
@@ -112,7 +113,7 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZero
       }
       if (utxo.assetInfo) {
         newUtxo.assetInfo = { assetGuid: utxo.assetInfo.assetGuid, value: new BN(utxo.assetInfo.value) }
-        const assetObj = sanitizedUtxos.assets.get(utxo.assetInfo.assetGuid)
+        const assetObj = sanitizedUtxos.assets.get(coinSelect.utils.getBaseAssetID(utxo.assetInfo.assetGuid))
         // sanity check to ensure sanitizedUtxos.assets has all of the assets being added to UTXO that are assets
         if (!assetObj) {
           return
@@ -121,7 +122,9 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZero
         if (!txOpts.allowOtherNotarizedAssetInputs) {
           // if notarization is required but it isn't a requested asset to send we skip this UTXO as would be dependent on a foreign asset notary
           if (assetObj.notarykeyid && assetObj.notarykeyid.length > 0) {
-            if (!assetMap || !assetMap.has(utxo.assetInfo.assetGuid)) {
+            const baseAssetID = coinSelect.utils.getBaseAssetID(utxo.assetInfo.assetGuid)
+            // for allocation sends asset map may have NFT key for asset send it would have base key ID always
+            if (!assetMap || (!assetMap.has(baseAssetID) && !assetMap.has(utxo.assetInfo.assetGuid))) {
               console.log('SKIPPING notary utxo')
               return
             }

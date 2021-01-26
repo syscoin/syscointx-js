@@ -34,7 +34,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
       res.outputs.push(dataOutput)
       let bOverrideRBF = false
       assetAllocations.forEach(assetAllocation => {
-        const assetObj = utxos.assets.get(assetAllocation.assetGuid)
+        const assetObj = utxos.assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid))
         if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
           bOverrideRBF = true
         }
@@ -186,10 +186,10 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
 
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript)
-    const assetAllocations = allocationBurn.allocation.filter(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
+    const assetAllocations = allocationBurn.allocation.filter(voutAsset => assets.has(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)) && assets.get(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)).notarysig)
     if (assetAllocations !== undefined) {
       assetAllocations.forEach(assetAllocation => {
-        assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
+        assetAllocation.notarysig = assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid)).notarysig
       })
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
       const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
@@ -198,10 +198,10 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
     const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
-    const assetAllocations = allocation.filter(voutAsset => assets.has(voutAsset.assetGuid) && assets.get(voutAsset.assetGuid).notarysig)
+    const assetAllocations = allocation.filter(voutAsset => assets.has(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)) && assets.get(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)).notarysig)
     if (assetAllocations !== undefined) {
       assetAllocations.forEach(assetAllocation => {
-        assetAllocation.notarysig = assets.get(assetAllocation.assetGuid).notarysig
+        assetAllocation.notarysig = assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid)).notarysig
       })
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
       const buffArr = [assetAllocationsBuffer]
@@ -311,7 +311,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   if (utxos.assets) {
     let bOverrideRBF = false
     assetAllocations.forEach(assetAllocation => {
-      const assetObj = utxos.assets.get(assetAllocation.assetGuid)
+      const assetObj = utxos.assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid))
       if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
         bOverrideRBF = true
       }
@@ -347,7 +347,13 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     // an output address/script for
     if (!output.address) {
       if (output.assetInfo) {
-        if (assetMap.has(output.assetInfo.assetGuid)) {
+        const baseAssetID = coinSelect.utils.getBaseAssetID(output.assetInfo.assetGuid)
+        if (assetMap.has(baseAssetID)) {
+          const changeAddress = assetMap.get(baseAssetID).changeAddress
+          if (changeAddress) {
+            output.address = changeAddress
+          }
+        } else if (baseAssetID !== output.assetInfo.assetGuid && assetMap.has(output.assetInfo.assetGuid)) {
           const changeAddress = assetMap.get(output.assetInfo.assetGuid).changeAddress
           if (changeAddress) {
             output.address = changeAddress
@@ -528,6 +534,7 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
 
 module.exports = {
   utils: utils,
+  coinSelect: coinSelect,
   bufferUtils: syscoinBufferUtils,
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
