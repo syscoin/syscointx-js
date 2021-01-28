@@ -347,13 +347,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     // an output address/script for
     if (!output.address) {
       if (output.assetInfo) {
-        const baseAssetID = coinSelect.utils.getBaseAssetID(output.assetInfo.assetGuid)
-        if (assetMap.has(baseAssetID)) {
-          const changeAddress = assetMap.get(baseAssetID).changeAddress
-          if (changeAddress) {
-            output.address = changeAddress
-          }
-        } else if (baseAssetID !== output.assetInfo.assetGuid && assetMap.has(output.assetInfo.assetGuid)) {
+        if (assetMap.has(output.assetInfo.assetGuid)) {
           const changeAddress = assetMap.get(output.assetInfo.assetGuid).changeAddress
           if (changeAddress) {
             output.address = changeAddress
