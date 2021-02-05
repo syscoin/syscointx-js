@@ -185,6 +185,9 @@ tape.test('test notary signing.', (assert) => {
   assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), -1)
   assert.equal(tx.toHex(), txHex)
   // asset map has notarysig in buffer ie: assets.get('650700076').notarysig
+  const jsonOut = syscointx.createNotarizationOutput(assets)
+  // output to client
+  assert.equal(JSON.stringify(jsonOut), '[{"asset":"2369540753","sig":"HzA01At+Ipkfxgs2wiZOD23j0lPY5PxEt6S4QYbv2L96VgLo4QBsX/fTtjqxDADLljZp/wSquNmWzfd5VtRYbKM="},{"asset":"650700076","sig":"IB2HqxXLma9nc60lNTLkEsmbClqz3loBKd0CGZf7ZM4DYUKWk9z7wrrWlUt5Nwb9clvUed0vRh3Amkgnk9aW0gk="},{"asset":"2699372871","sig":"H/QRY9EMSK4Jx/fNPRZhbE+q4pXjoZeiFBaoLBNKLTqQXeQSMN97LCbLhJVd/t+DJVng+dkJJzTKuLcXepy/WVk="},{"asset":"402223530","sig":"H/92vEOHlgkXM4N0O/flKK5/U9ElB1XNWKDTrpusqyLbS0XlLUAGxPc90gfVV1wAIjx84VDzVQWOOoazHyoYTYo="},{"asset":"1537060536","sig":"IH9XYZ5ZKmwao09sFiw3i4+WnmrrHVh7aLck+7gUmiSRB2AbCvt/wft6xJLgUbcQcaUaGT+2r1yCx71fJs22SJ4="}]')
   assert.end()
 })
 fixtures.forEach(function (f) {

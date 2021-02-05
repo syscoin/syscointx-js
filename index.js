@@ -218,6 +218,14 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
   }
   return opReturnIndex
 }
+// from assets map create the JSON output to send back to client from a notary server
+function createNotarizationOutput (assets) {
+  const jsonOut = []
+  for (const [assetGuid, valueAssetObj] of assets.entries()) {
+    jsonOut.push({ asset: assetGuid, sig: valueAssetObj.notarysig.toString('base64') })
+  }
+  return jsonOut
+}
 // get all assets found in an asset tx returned in a map of assets keyed by asset guid
 function getAssetsFromTx (tx) {
   if (!utils.isSyscoinTx(tx.version)) {
@@ -623,5 +631,6 @@ module.exports = {
   addNotarizationSignatures: addNotarizationSignatures,
   signNotarizationSigHashesWithWIF: signNotarizationSigHashesWithWIF,
   getNotarizationSigHash: getNotarizationSigHash,
-  getAssetsFromTx: getAssetsFromTx
+  getAssetsFromTx: getAssetsFromTx,
+  createNotarizationOutput: createNotarizationOutput
 }
