@@ -3,6 +3,7 @@ const ext = require('./bn-extensions')
 const bufferUtils = require('./bufferutils')
 const varuint = require('varuint-bitcoin')
 const utils = require('./utils.js')
+const bitcoin = require('bitcoinjs-lib')
 function putUint (bufferWriter, n) {
   const tmp = []
   let len = 0
@@ -35,6 +36,19 @@ function readUint (bufferReader) {
       return n
     }
   }
+}
+
+function readUInt64LE (buffer) {
+  const a = buffer.readUInt32()
+  const b = buffer.readUInt32()
+  return new BN(b).shln(32).or(new BN(a))
+}
+
+function writeUInt64LE (buffer, value) {
+  const a = value.and(new BN(0xFFFFFFFF)).toNumber()
+  const b = value.shrn(32).toNumber()
+  buffer.writeUInt32(a)
+  buffer.writeUInt32(b)
 }
 
 function byteLengthAuxFee (auxfee) {
@@ -316,6 +330,27 @@ function serializeAssetVout (assetAllocation, bufferWriter) {
   bufferWriter.writeVarSlice(assetAllocation.notarysig)
 }
 
+function getNotarizationSigHash (tx, vecOut, network) {
+  let tbuffer = Buffer.from([])
+  tbuffer = Buffer.allocUnsafe((36 * tx.ins.length) + 8 + (54 * vecOut.values.length))
+  const bufferWriter = new bufferUtils.BufferWriter(tbuffer, 0)
+  // 32 byte hash + 4 byte index = 36 * input
+  tx.ins.forEach(txIn => {
+    bufferWriter.writeSlice(txIn.hash)
+    bufferWriter.writeUInt32(txIn.index)
+  })
+  // 8 byte asset guid
+  writeUInt64LE(bufferWriter, new BN(vecOut.assetGuid))
+  // max 45 byte address for segwit bech32 + 1 size byte + 8 byte address = 54 * output
+  vecOut.values.forEach(output => {
+    const address = bitcoin.address.fromOutputScript(tx.outs[output.n].script, network)
+    bufferWriter.writeVarSlice(Buffer.from(address))
+    writeUInt64LE(bufferWriter, output.value)
+  })
+  tbuffer = tbuffer.slice(0, bufferWriter.offset)
+  return bitcoin.crypto.hash256(tbuffer)
+}
+
 function serializeAssetAllocations (assetAllocations) {
   const buffer = Buffer.allocUnsafe(byteLengthAssetAllocation(assetAllocations))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
@@ -385,5 +420,9 @@ module.exports = {
   deserializeMintSyscoin: deserializeMintSyscoin,
   serializeAllocationBurn: serializeAllocationBurn,
   deserializeAllocationBurn: deserializeAllocationBurn,
-  deserializeAssetAllocations: deserializeAssetAllocations
+  deserializeAssetAllocations: deserializeAssetAllocations,
+  getNotarizationSigHash: getNotarizationSigHash,
+  writeUInt64LE: writeUInt64LE,
+  readUInt64LE: readUInt64LE
+
 }

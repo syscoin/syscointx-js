@@ -176,6 +176,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     if (chunks[0] === bitcoinops.OP_RETURN) {
       opReturnScript = chunks[1]
       opReturnIndex = i
+      break
     }
   }
 
@@ -191,9 +192,11 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
       assetAllocations.forEach(assetAllocation => {
         assetAllocation.notarysig = assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid)).notarysig
       })
-      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-      const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
-      const buffArr = [assetAllocationsBuffer, allocationBurnBuffer]
+    }
+    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocationBurn.allocation)
+    const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
+    const buffArr = [assetAllocationsBuffer, allocationBurnBuffer]
+    if (assetAllocations !== undefined) {
       dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
@@ -203,8 +206,10 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
       assetAllocations.forEach(assetAllocation => {
         assetAllocation.notarysig = assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid)).notarysig
       })
-      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-      const buffArr = [assetAllocationsBuffer]
+    }
+    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocation)
+    const buffArr = [assetAllocationsBuffer]
+    if (assetAllocations !== undefined) {
       dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
     }
   }
@@ -213,7 +218,83 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
   }
   return opReturnIndex
 }
+// get all assets found in an asset tx returned in a map of assets keyed by asset guid
+function getAssetsFromTx (tx) {
+  if (!utils.isSyscoinTx(tx.version)) {
+    return null
+  }
+  const assets = new Map()
+  let opReturnScript = null
+  for (let i = 0; i < tx.outs.length; i++) {
+    const output = tx.outs[i]
+    if (!output.script) {
+      continue
+    }
+    // find opreturn
+    const chunks = bitcoin.script.decompile(output.script)
+    if (chunks[0] === bitcoinops.OP_RETURN) {
+      opReturnScript = chunks[1]
+      break
+    }
+  }
 
+  if (opReturnScript === null) {
+    console.log('no OPRETURN script found')
+    return null
+  }
+
+  const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
+  if (!allocation) {
+    return null
+  }
+  allocation.forEach(assetAllocation => {
+    assets.set(assetAllocation.assetGuid, {})
+  })
+  return assets
+}
+// get all notarizations stored of assets in assets map as notarysighash stored in assets
+function getNotarizationSigHash (tx, assets, network) {
+  let opReturnScript = null
+  for (let i = 0; i < tx.outs.length; i++) {
+    const output = tx.outs[i]
+    if (!output.script) {
+      continue
+    }
+    // find opreturn
+    const chunks = bitcoin.script.decompile(output.script)
+    if (chunks[0] === bitcoinops.OP_RETURN) {
+      opReturnScript = chunks[1]
+      break
+    }
+  }
+
+  if (opReturnScript === null) {
+    console.log('no OPRETURN script found')
+    return false
+  }
+
+  const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
+  const assetAllocations = allocation.filter(voutAsset => assets.has(voutAsset.assetGuid))
+  if (assetAllocations !== undefined) {
+    assetAllocations.forEach(assetAllocation => {
+      assets.get(assetAllocation.assetGuid).notarysighash = syscoinBufferUtils.getNotarizationSigHash(tx, assetAllocation, network)
+    })
+  }
+  return true
+}
+// sign all notary sig hashes with WIF
+function signNotarizationSigHashesWithWIF (assets, WIF, network) {
+  for (const value of assets.values()) {
+    if (value.notarysighash) {
+      const sig = utils.signHash(WIF, value.notarysighash, network)
+      if (!sig) {
+        return false
+      }
+      value.notarysig = sig
+    }
+  }
+  return true
+}
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, utxos.assets)
 
@@ -539,5 +620,8 @@ module.exports = {
   assetAllocationBurn: assetAllocationBurn,
   assetAllocationMint: assetAllocationMint,
   syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
-  addNotarizationSignatures: addNotarizationSignatures
+  addNotarizationSignatures: addNotarizationSignatures,
+  signNotarizationSigHashesWithWIF: signNotarizationSigHashesWithWIF,
+  getNotarizationSigHash: getNotarizationSigHash,
+  getAssetsFromTx: getAssetsFromTx
 }

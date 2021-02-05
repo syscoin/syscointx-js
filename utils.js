@@ -1,5 +1,7 @@
 const BN = require('bn.js')
 const ext = require('./bn-extensions')
+const bitcoin = require('bitcoinjs-lib')
+const secp256k1 = require('secp256k1')
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
@@ -31,6 +33,9 @@ function isAllocationBurn (txVersion) {
 }
 function isAssetAllocationTx (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_SEND
+}
+function isSyscoinTx (txVersion) {
+  return isAsset(txVersion) || isAssetAllocationTx(txVersion)
 }
 function USHRT_MAX () {
   return 65535
@@ -134,6 +139,17 @@ function generateAssetGuid (input) {
   return bigNum.toString(10)
 }
 
+function signHash (WIF, hash, network) {
+  const keyPair = bitcoin.ECPair.fromWIF(WIF, network)
+  const sigObj = secp256k1.sign(hash, keyPair.privateKey)
+  const recId = 27 + sigObj.recovery + (keyPair.compressed ? 4 : 0)
+
+  const recIdBuffer = Buffer.allocUnsafe(1)
+  recIdBuffer.writeInt8(recId)
+  const rawSignature = Buffer.concat([recIdBuffer, sigObj.signature])
+  return rawSignature
+}
+
 module.exports = {
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
@@ -166,6 +182,8 @@ module.exports = {
   isAsset: isAsset,
   isAllocationBurn: isAllocationBurn,
   isAssetAllocationTx: isAssetAllocationTx,
+  isSyscoinTx: isSyscoinTx,
+  signHash: signHash,
   MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
 
 }
