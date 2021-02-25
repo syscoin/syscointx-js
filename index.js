@@ -561,7 +561,14 @@ function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
 function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
-  const dataBuffer = null
+  let dataBuffer = null
+  if (txOpts.memo) {
+    if (txOpts.memo.length > 80) {
+      console.log('Memo too big! Max is 80 bytes, found: ' + txOpts.memo.length)
+      return
+    }
+    dataBuffer = Buffer.from(txOpts.memo)
+  }
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
