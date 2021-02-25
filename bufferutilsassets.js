@@ -53,7 +53,7 @@ function writeUInt64LE (buffer, value) {
 
 function byteLengthAuxFee (auxfee) {
   let len = 8 // bound
-  len += varuint.encodingLength(auxfee.percent.length) + auxfee.percent.length // string percentage
+  len += 2 // percent uint16
   return len
 }
 
