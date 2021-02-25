@@ -469,8 +469,8 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   assetOpts.prevnotarykeyid = Buffer.from('')
   assetOpts.notarydetails = assetOpts.notarydetails || { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
   assetOpts.prevnotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
-  assetOpts.auxfeedetails = assetOpts.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfee: [] }
-  assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfee: [] }
+  assetOpts.auxfeedetails = assetOpts.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfees: [] }
+  assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfees: [] }
   assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || utils.ASSET_CAPABILITY_ALL
   assetOpts.prevupdatecapabilityflags = 0
   assetOpts.totalsupply = ext.BN_ZERO
@@ -544,7 +544,7 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
   if (!_.isEqual(assetObj.auxfeedetails, assetOpts.auxfeedetails)) {
-    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfee: [] }
+    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfees: [] }
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
   }
   assetOpts.updateflags = updateflags
