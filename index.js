@@ -540,7 +540,7 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
   }
   if (!_.isEqual(assetObj.notarydetails, assetOpts.notarydetails)) {
-    assetOpts.prevnotarydetails = assetObj.notarydetails || Buffer.from('')
+    assetOpts.prevnotarydetails = assetObj.notarydetails || { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
   if (!_.isEqual(assetObj.auxfeedetails, assetOpts.auxfeedetails)) {
