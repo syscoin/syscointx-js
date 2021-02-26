@@ -563,9 +563,9 @@ function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate
   const dataAmount = ext.BN_ZERO
   let dataBuffer = null
   if (txOpts.memo) {
-    if(!Buffer.isBuffer(txOpts.memo)) {
+    if (!Buffer.isBuffer(txOpts.memo)) {
       console.log('Memo must be Buffer object')
-      return  
+      return
     }
     if (txOpts.memo.length > 80) {
       console.log('Memo too big! Max is 80 bytes, found: ' + txOpts.memo.length)
