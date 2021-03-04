@@ -22,6 +22,7 @@ const ASSET_UPDATE_AUXFEE = 32 // can you update aux fees?
 const ASSET_UPDATE_CAPABILITYFLAGS = 64 // can you update capability flags?
 const ASSET_CAPABILITY_ALL = 127
 const ASSET_INIT = 128 // upon asset creation
+const memoHeader = Buffer.from([0xff, 0xff, 0xaf, 0xaf, 0xaa, 0xaa])
 function isNonAssetFunded (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
 }
@@ -184,6 +185,7 @@ module.exports = {
   isAssetAllocationTx: isAssetAllocationTx,
   isSyscoinTx: isSyscoinTx,
   signHash: signHash,
-  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
+  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE,
+  memoHeader: memoHeader
 
 }
