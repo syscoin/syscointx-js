@@ -8,13 +8,29 @@ const bitcoinops = require('bitcoin-ops')
 const _ = require('lodash')
 
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
+  let dataBuffer = null
+  let totalMemoLen = 0
+  if (txOpts.memo) {
+    if (!txOpts.memoHeader) {
+      console.log('No Memo header defined')
+      return null
+    }
+    totalMemoLen = txOpts.memo.length + txOpts.memoHeader.length
+  }
+  if (totalMemoLen > 80) {
+    console.log('Memo too big! Max is 80 bytes, found: ' + totalMemoLen)
+    return null
+  }
+  if (txOpts.memo) {
+    dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
+  }
   let txVersion = 2
   const inputsArr = []
-  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets)
+  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets, txVersion, totalMemoLen)
   if (!res.inputs || !res.outputs) {
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null, totalMemoLen)
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -24,7 +40,12 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
       optimizeOutputs(res.outputs, assetAllocations)
       const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
-      const buffArr = [assetAllocationsBuffer]
+      let buffArr
+      if (dataBuffer) {
+        buffArr = [assetAllocationsBuffer, dataBuffer]
+      } else {
+        buffArr = [assetAllocationsBuffer]
+      }
       // create and add data script for OP_RETURN
       const dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
       const dataOutput = {
@@ -45,6 +66,14 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
         txOpts.rbf = true
       }
     }
+  } else if (dataBuffer) {
+    const updatedData = [dataBuffer]
+    const dataScript = bitcoin.payments.embed({ data: [Buffer.concat(updatedData)] }).output
+    const dataOutput = {
+      script: dataScript,
+      value: ext.BN_ZERO
+    }
+    res.outputs.push(dataOutput)
   }
   const inputs = res.inputs
   const outputs = res.outputs
@@ -567,12 +596,16 @@ function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate
       console.log('Memo must be Buffer object')
       return
     }
-    const totalLen = utils.memoHeader.length + txOpts.memo.length
+    const totalLen = txOpts.memo.length + txOpts.memoHeader.length
+    if (!txOpts.memoHeader) {
+      console.log('No Memo header defined')
+      return
+    }
     if (totalLen > 80) {
       console.log('Memo too big! Max is 80 bytes, found: ' + totalLen)
       return
     }
-    dataBuffer = Buffer.concat([utils.memoHeader, txOpts.memo])
+    dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
   }
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }

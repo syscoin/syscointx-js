@@ -2,6 +2,7 @@ const BN = require('bn.js')
 const utils = require('../../utils')
 const scalarPct = 1000
 const COIN = 100000000
+const memoHeader = Buffer.from([0xff, 0xff, 0xaf, 0xaf, 0xaa, 0xaa])
 module.exports = [{
   description: 'new asset',
   version: utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE,
@@ -192,6 +193,46 @@ module.exports = [{
     asset: {
       allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }], notarysig: Buffer.from('') }]
     }
+  }
+},
+{
+  description: 'send asset allocation with memo',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
+  txOpts: {
+    rbf: true,
+    memo: Buffer.from('memo for send'),
+    memoHeader: memoHeader
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: 'c6e7702f1ab817bacf81e5678ba89e0b43a8a7b6f56c4c055aa8aeda87197a62', vout: 0, address: '0014712a0433b3be8c2860db2d313c44fa1967542780', value: '980', assetInfo: { assetGuid: '1635229536', value: '1000000000' } },
+      { txid: '2cf903537c6c161a1c65d940758b63efd4706fc8f78eb21d252612407e59e865', vout: 0, address: '0014ab0ed68aa74cc422d69e4d675eb029ab93211c4c', value: '100000000' }
+    ],
+    assets: [
+      {
+        assetGuid: '1635229536',
+        decimals: 8,
+        pubData: { desc: utils.encodeToBase64('publicvalue') },
+        symbol: utils.encodeToBase64('CAT'),
+        updateCapabilityFlags: 127,
+        totalSupply: '0',
+        maxSupply: '100000000000'
+      }
+    ]
+  },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(600000000), address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9' }] }]
+  ]),
+  expected: {
+    rbf: true,
+    numOutputs: 3,
+    script: Buffer.from('6a1f01858addbd6002003b022700ffffafafaaaa6d656d6f20666f722073656e64', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }], notarysig: Buffer.from('') }]
+    },
+    memo: Buffer.concat([memoHeader, Buffer.from('memo for send')])
   }
 },
 {
@@ -1056,6 +1097,58 @@ module.exports = [{
     rbf: true,
     version: 2,
     numOutputs: 2
+  }
+},
+{
+  description: 'standard sys send with memo',
+  version: 2,
+  txOpts: {
+    rbf: true,
+    memo: Buffer.from('test'),
+    memoHeader: memoHeader
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000' },
+      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914' }
+    ]
+  },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  outputs: [
+    { address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', value: new BN(150000000) }
+  ],
+  expected: {
+    rbf: true,
+    version: 2,
+    numOutputs: 3,
+    memo: Buffer.from('test')
+  }
+},
+{
+  description: 'standard sys send with memo in hex',
+  version: 2,
+  txOpts: {
+    rbf: true,
+    memo: Buffer.from('26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36'),
+    memoHeader: memoHeader
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: '26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '100000000' },
+      { txid: '36f6b17b715ccd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36', vout: 0, address: '001497e5ec8eb455b3bba42c5d5f952f67c26793115d', value: '100000914' }
+    ]
+  },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  outputs: [
+    { address: 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9', value: new BN(150000000) }
+  ],
+  expected: {
+    rbf: true,
+    version: 2,
+    numOutputs: 3,
+    memo: Buffer.from('test')
   }
 },
 {

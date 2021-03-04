@@ -48,6 +48,44 @@ const syscoinNetworks = {
     wif: 0xef
   }
 }
+const memoHeader = Buffer.from([0xff, 0xff, 0xaf, 0xaf, 0xaa, 0xaa])
+
+/* getMemoFromScript
+Purpose: Return memo from a script, null otherwise
+Param script: Required. OP_RETURN script output
+Param memoHeader: Required. Prefix header to look for, application specific
+*/
+function getMemoFromScript (script, memoHeader) {
+  const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(script)
+  if (assetAllocations && assetAllocations.memo.indexOf(memoHeader) === 0) {
+    return assetAllocations.memo.slice(memoHeader.length)
+  }
+  return null
+}
+
+/* getMemoFromOpReturn
+Purpose: Return memo from an array of outputs by finding the OP_RETURN output and extracting the memo from the script, return null if not found
+Param outputs: Required. Tx output array
+Param memoHeader: Required. Prefix header to look for, application specific
+*/
+function getMemoFromOpReturn (outputs, memoHeader) {
+  for (let i = 0; i < outputs.length; i++) {
+    const output = outputs[i]
+    if (output.script) {
+      // find opreturn
+      const chunks = bitcoin.script.decompile(output.script)
+      if (chunks[0] === bitcoinops.OP_RETURN) {
+        // if header at beginning means this is standard syscoin transaction otherwise its an asset tx
+        if (chunks[1].indexOf(memoHeader) === 0) {
+          return chunks[1].slice(memoHeader.length)
+        }
+        return getMemoFromScript(chunks[1], memoHeader)
+      }
+    }
+  }
+  return null
+}
+
 function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZeroConf) {
   if (!txOpts) {
     txOpts = { rbf: false }
@@ -302,6 +340,9 @@ fixtures.forEach(function (f) {
       const res = syscointx.assetAllocationSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
+      if (txOpts.memo) {
+        t.same(getMemoFromOpReturn(res.outputs, memoHeader), txOpts.memo)
+      }
       res.outputs.forEach(output => {
         if (output.script) {
           // find opreturn
@@ -309,6 +350,10 @@ fixtures.forEach(function (f) {
           if (chunks[0] === bitcoinops.OP_RETURN) {
             t.same(output.script, f.expected.script)
             const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            if (assetAllocations.memo) {
+              t.same(assetAllocations.memo, f.expected.memo)
+              f.expected.asset.allocation.memo = f.expected.memo
+            }
             t.same(assetAllocations, f.expected.asset.allocation)
           }
         }
@@ -318,17 +363,22 @@ fixtures.forEach(function (f) {
       const res = syscointx.createTransaction(txOpts, utxos, f.sysChangeAddress, f.outputs, f.feeRate)
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.expected.version)
-      res.outputs.forEach(output => {
-        if (output.script) {
-          // find opreturn
-          const chunks = bitcoin.script.decompile(output.script)
-          if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
-            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-            t.same(assetAllocations, f.expected.asset.allocation)
+      if (txOpts.memo) {
+        t.same(getMemoFromOpReturn(res.outputs, memoHeader), txOpts.memo)
+      }
+      if (res.txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
+        res.outputs.forEach(output => {
+          if (output.script) {
+            // find opreturn
+            const chunks = bitcoin.script.decompile(output.script)
+            if (chunks[0] === bitcoinops.OP_RETURN) {
+              t.same(output.script, f.expected.script)
+              const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+              t.same(assetAllocations, f.expected.asset.allocation)
+            }
           }
-        }
-      })
+        })
+      }
     }
     t.same(txOpts.rbf, f.expected.rbf)
     t.end()
