@@ -232,7 +232,7 @@ module.exports = [{
     asset: {
       allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(600000000) }, { n: 2, value: new BN(400000000) }], notarysig: Buffer.from('') }]
     },
-    memo: Buffer.concat([memoHeader, Buffer.from('memo for send')])
+    memo: Buffer.from('memo for send')
   }
 },
 {

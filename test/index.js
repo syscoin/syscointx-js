@@ -56,9 +56,9 @@ Param script: Required. OP_RETURN script output
 Param memoHeader: Required. Prefix header to look for, application specific
 */
 function getMemoFromScript (script, memoHeader) {
-  const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(script)
-  if (assetAllocations && assetAllocations.memo.indexOf(memoHeader) === 0) {
-    return assetAllocations.memo.slice(memoHeader.length)
+  const pos = script.indexOf(memoHeader)
+  if (pos >= 0) {
+    return script.slice(pos + memoHeader.length)
   }
   return null
 }
@@ -75,10 +75,6 @@ function getMemoFromOpReturn (outputs, memoHeader) {
       // find opreturn
       const chunks = bitcoin.script.decompile(output.script)
       if (chunks[0] === bitcoinops.OP_RETURN) {
-        // if header at beginning means this is standard syscoin transaction otherwise its an asset tx
-        if (chunks[1].indexOf(memoHeader) === 0) {
-          return chunks[1].slice(memoHeader.length)
-        }
         return getMemoFromScript(chunks[1], memoHeader)
       }
     }
@@ -350,9 +346,8 @@ fixtures.forEach(function (f) {
           if (chunks[0] === bitcoinops.OP_RETURN) {
             t.same(output.script, f.expected.script)
             const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
-            if (assetAllocations.memo) {
-              t.same(assetAllocations.memo, f.expected.memo)
-              f.expected.asset.allocation.memo = f.expected.memo
+            if (f.expected.memo) {
+              t.same(getMemoFromScript(chunks[1], memoHeader), f.expected.memo)
             }
             t.same(assetAllocations, f.expected.asset.allocation)
           }

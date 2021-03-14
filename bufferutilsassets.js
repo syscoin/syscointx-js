@@ -238,9 +238,6 @@ function deserializeAssetAllocations (buffer, bufferReaderIn) {
     const voutAsset = deserializeAssetVout(bufferReader)
     assetAllocations.push(voutAsset)
   }
-  if (!bufferReaderIn && bufferReader.offset !== buffer.length) {
-    assetAllocations.memo = buffer.slice(bufferReader.offset)
-  }
   return assetAllocations
 }
 
