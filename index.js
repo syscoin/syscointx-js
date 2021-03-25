@@ -213,7 +213,6 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     console.log('no OPRETURN script found')
     return -1
   }
-  const memoBuff = utils.getMemoFromScript(opReturnScript, utils.memoHeader)
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript)
     const assetAllocations = allocationBurn.allocation.filter(voutAsset => assets.has(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)) && assets.get(coinSelect.utils.getBaseAssetID(voutAsset.assetGuid)).notarysig)
@@ -225,8 +224,8 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocationBurn.allocation)
     const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
     let buffArr
-    if (memoBuff) {
-      buffArr = [assetAllocationsBuffer, allocationBurnBuffer, memoBuff]
+    if (allocationBurn.allocation.memo) {
+      buffArr = [assetAllocationsBuffer, allocationBurnBuffer, allocationBurn.allocation.memo]
     } else {
       buffArr = [assetAllocationsBuffer, allocationBurnBuffer]
     }
@@ -243,8 +242,8 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
     }
     const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocation)
     let buffArr
-    if (memoBuff) {
-      buffArr = [assetAllocationsBuffer, memoBuff]
+    if (allocation.memo) {
+      buffArr = [assetAllocationsBuffer, allocation.memo]
     } else {
       buffArr = [assetAllocationsBuffer]
     }
