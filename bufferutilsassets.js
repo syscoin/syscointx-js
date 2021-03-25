@@ -230,7 +230,7 @@ function deserializeAssetVout (bufferReader) {
   return { assetGuid: assetGuid.toString(10), values: values, notarysig: notarysig }
 }
 
-function deserializeAssetAllocations (buffer, bufferReaderIn) {
+function deserializeAssetAllocations (buffer, bufferReaderIn, extractMemo) {
   const bufferReader = bufferReaderIn || new bufferUtils.BufferReader(buffer)
   const assetAllocations = [] // TODO ts this
   const numAllocations = bufferReader.readVarInt()
@@ -238,7 +238,7 @@ function deserializeAssetAllocations (buffer, bufferReaderIn) {
     const voutAsset = deserializeAssetVout(bufferReader)
     assetAllocations.push(voutAsset)
   }
-  if (!bufferReaderIn && bufferReader.offset !== buffer.length) {
+  if (extractMemo && !bufferReaderIn && bufferReader.offset !== buffer.length) {
     assetAllocations.memo = buffer.slice(bufferReader.offset)
   }
   return assetAllocations
@@ -406,11 +406,11 @@ function serializeAllocationBurn (allocationBurn) {
   return buffer
 }
 
-function deserializeAllocationBurn (buffer) {
+function deserializeAllocationBurn (buffer, extractMemo) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const allocationBurn = {} // TODO ts this
 
-  allocationBurn.allocation = deserializeAssetAllocations(null, bufferReader)
+  allocationBurn.allocation = deserializeAssetAllocations(null, bufferReader, extractMemo)
   allocationBurn.ethaddress = bufferReader.readVarSlice()
   return allocationBurn
 }
