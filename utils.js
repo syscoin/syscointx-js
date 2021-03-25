@@ -2,6 +2,7 @@ const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const bitcoin = require('bitcoinjs-lib')
 const secp256k1 = require('secp256k1')
+const bitcoinops = require('bitcoin-ops')
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 128
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 129
@@ -22,6 +23,7 @@ const ASSET_UPDATE_AUXFEE = 32 // can you update aux fees?
 const ASSET_UPDATE_CAPABILITYFLAGS = 64 // can you update capability flags?
 const ASSET_CAPABILITY_ALL = 127
 const ASSET_INIT = 128 // upon asset creation
+const memoHeader = Buffer.from([0xff, 0xff, 0xaf, 0xaf, 0xaa, 0xaa])
 function isNonAssetFunded (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
 }
@@ -150,6 +152,78 @@ function signHash (WIF, hash, network) {
   return rawSignature
 }
 
+/* getMemoFromScript
+Purpose: Return memo from a script, null otherwise
+Param script: Required. OP_RETURN script output
+Param memoHeader: Required. Memo prefix, application specific
+*/
+function getMemoFromScript (script, memoHeader) {
+  const pos = script.indexOf(memoHeader)
+  if (pos >= 0) {
+    return script.slice(pos + memoHeader.length)
+  }
+  return null
+}
+
+/* getMemoFromOpReturn
+Purpose: Return memo from an array of outputs by finding the OP_RETURN output and extracting the memo from the script, return null if not found
+Param outputs: Required. Tx output array
+Param memoHeader: Required. Memo prefix, application specific
+*/
+function getMemoFromOpReturn (outputs, memoHeader) {
+  for (let i = 0; i < outputs.length; i++) {
+    const output = outputs[i]
+    if (output.script) {
+      // find opreturn
+      const chunks = bitcoin.script.decompile(output.script)
+      if (chunks[0] === bitcoinops.OP_RETURN) {
+        return getMemoFromScript(chunks[1], memoHeader)
+      }
+    }
+  }
+  return null
+}
+
+/* setTransactionMemo
+Purpose: Return transaction with memo appended to the inside of the OP_RETURN output, return null if not found
+Param rawHex: Required. Raw transaction hex
+Param memoHeader: Required. Memo prefix, application specific
+Param buffMemo: Required. Buffer memo to put into the transaction
+*/
+function setTransactionMemo (rawHex, memoHeader, buffMemo) {
+  const txn = bitcoin.Transaction.fromHex(rawHex)
+  let processed = false
+  if (!buffMemo) {
+    return txn
+  }
+  for (let key = 0; key < txn.outs.length; key++) {
+    const out = txn.outs[key]
+    const chunksIn = bitcoin.script.decompile(out.script)
+    if (chunksIn[0] !== bitcoin.opcodes.OP_RETURN) {
+      continue
+    }
+    txn.outs.splice(key, 1)
+    const updatedData = [chunksIn[1], memoHeader, buffMemo]
+    txn.addOutput(bitcoin.payments.embed({ data: [Buffer.concat(updatedData)] }).output, 0)
+    processed = true
+    break
+  }
+  if (processed) {
+    const memoRet = getMemoFromOpReturn(txn.outs, memoHeader)
+    if (!memoRet || !memoRet.equals(buffMemo)) {
+      return null
+    }
+    return txn
+  }
+  const updatedData = [memoHeader, buffMemo]
+  txn.addOutput(bitcoin.payments.embed({ data: [Buffer.concat(updatedData)] }).output, 0)
+  const memoRet = getMemoFromOpReturn(txn.outs, memoHeader)
+  if (!memoRet || !memoRet.equals(buffMemo)) {
+    return null
+  }
+  return txn
+}
+
 module.exports = {
   generateAssetGuid: generateAssetGuid,
   encodeToBase64: encodeToBase64,
@@ -184,6 +258,10 @@ module.exports = {
   isAssetAllocationTx: isAssetAllocationTx,
   isSyscoinTx: isSyscoinTx,
   signHash: signHash,
-  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
+  getMemoFromScript: getMemoFromScript,
+  getMemoFromOpReturn: getMemoFromOpReturn,
+  setTransactionMemo: setTransactionMemo,
+  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE,
+  memoHeader: memoHeader
 
 }

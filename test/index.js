@@ -48,39 +48,6 @@ const syscoinNetworks = {
     wif: 0xef
   }
 }
-const memoHeader = Buffer.from([0xff, 0xff, 0xaf, 0xaf, 0xaa, 0xaa])
-
-/* getMemoFromScript
-Purpose: Return memo from a script, null otherwise
-Param script: Required. OP_RETURN script output
-Param memoHeader: Required. Prefix header to look for, application specific
-*/
-function getMemoFromScript (script, memoHeader) {
-  const pos = script.indexOf(memoHeader)
-  if (pos >= 0) {
-    return script.slice(pos + memoHeader.length)
-  }
-  return null
-}
-
-/* getMemoFromOpReturn
-Purpose: Return memo from an array of outputs by finding the OP_RETURN output and extracting the memo from the script, return null if not found
-Param outputs: Required. Tx output array
-Param memoHeader: Required. Prefix header to look for, application specific
-*/
-function getMemoFromOpReturn (outputs, memoHeader) {
-  for (let i = 0; i < outputs.length; i++) {
-    const output = outputs[i]
-    if (output.script) {
-      // find opreturn
-      const chunks = bitcoin.script.decompile(output.script)
-      if (chunks[0] === bitcoinops.OP_RETURN) {
-        return getMemoFromScript(chunks[1], memoHeader)
-      }
-    }
-  }
-  return null
-}
 
 function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZeroConf) {
   if (!txOpts) {
@@ -224,6 +191,15 @@ tape.test('test notary signing.', (assert) => {
   assert.equal(JSON.stringify(jsonOut), '[{"asset":"2369540753","sig":"HzA01At+Ipkfxgs2wiZOD23j0lPY5PxEt6S4QYbv2L96VgLo4QBsX/fTtjqxDADLljZp/wSquNmWzfd5VtRYbKM="},{"asset":"650700076","sig":"IB2HqxXLma9nc60lNTLkEsmbClqz3loBKd0CGZf7ZM4DYUKWk9z7wrrWlUt5Nwb9clvUed0vRh3Amkgnk9aW0gk="},{"asset":"2699372871","sig":"H/QRY9EMSK4Jx/fNPRZhbE+q4pXjoZeiFBaoLBNKLTqQXeQSMN97LCbLhJVd/t+DJVng+dkJJzTKuLcXepy/WVk="},{"asset":"402223530","sig":"H/92vEOHlgkXM4N0O/flKK5/U9ElB1XNWKDTrpusqyLbS0XlLUAGxPc90gfVV1wAIjx84VDzVQWOOoazHyoYTYo="},{"asset":"1537060536","sig":"IH9XYZ5ZKmwao09sFiw3i4+WnmrrHVh7aLck+7gUmiSRB2AbCvt/wft6xJLgUbcQcaUaGT+2r1yCx71fJs22SJ4="}]')
   assert.end()
 })
+tape.test('test extract memo.', (assert) => {
+  // transaction hex that has all notary signatures already but we will re-confirm them by assert.equal(tx.toHex(), txHex)
+  const txHex = '87000000000102478fb14bec09d10f15d2ae0a4198b05ea002cab4147a43f1b0ca571504bb20720100000000ffffffffa41cfebe1b3e56da0d42e3629512b7734b52834aa9b7d1b46fd89dc9fa6ed2180100000000ffffffff04a8020000000000001600140b26e3403eeccdcf176b8c041ee99abf23e676e2a8020000000000001600144a1a3fb9007e655786946f3bac7bc2157bac56a60000000000000000546a4c510180a283a46703000601080381d740411f043a95360640953b9daa628c443073b72ea0e8fff0bccb6c5bad9795d447e5ad6c35c4a382d6ea6773bc72bfb9fcf529ef47eabf59750a610eb43193cb82e03b526e8747020000001600147dccd91471590db1eb4bcddb7bfe34fd076af31d0247304402205f66c62875fe973d5ee558984d522962ad00731c5ebd0cb163265ed28d6a9c5b022016391a1ddbaca5fea77abf30ca0c0159c0887e1b5af2b75ff19b1bbf25331fec01210288644767b596e5781bcc840fdbdf730bed12d4e0962e842b27ab8276ab409f4802473044022043a8c6ada327c667177dfb59d73369526d3771e86e3cefd06812aa53c1ae63e7022063eec2090ef8709a4307120fa314274e53776c9eaab43829a1156e34b04e9c3c01210288644767b596e5781bcc840fdbdf730bed12d4e0962e842b27ab8276ab409f4800000000'
+  const tx = bitcoin.Transaction.fromHex(txHex)
+  assert.equal(syscointx.utils.isAssetAllocationTx(tx.version), true)
+  // const memo = getMemoFromOpReturn(tx.outs, Buffer.from([0xfe, 0xfe, 0xaf, 0xaf, 0xaf, 0xaf]))
+  // assert.equal(memo, 'memo')
+  assert.end()
+})
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
     let utxos = f.utxoObj
@@ -337,7 +313,7 @@ fixtures.forEach(function (f) {
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       if (txOpts.memo) {
-        t.same(getMemoFromOpReturn(res.outputs, memoHeader), txOpts.memo)
+        t.same(utils.getMemoFromOpReturn(res.outputs, utils.memoHeader), txOpts.memo)
       }
       res.outputs.forEach(output => {
         if (output.script) {
@@ -347,7 +323,7 @@ fixtures.forEach(function (f) {
             t.same(output.script, f.expected.script)
             const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
             if (f.expected.memo) {
-              t.same(getMemoFromScript(chunks[1], memoHeader), f.expected.memo)
+              t.same(utils.getMemoFromScript(chunks[1], utils.memoHeader), f.expected.memo)
             }
             t.same(assetAllocations, f.expected.asset.allocation)
           }
@@ -359,7 +335,7 @@ fixtures.forEach(function (f) {
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.expected.version)
       if (txOpts.memo) {
-        t.same(getMemoFromOpReturn(res.outputs, memoHeader), txOpts.memo)
+        t.same(utils.getMemoFromOpReturn(res.outputs, utils.memoHeader), txOpts.memo)
       }
       if (res.txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
         res.outputs.forEach(output => {
