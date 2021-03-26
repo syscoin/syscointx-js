@@ -224,6 +224,15 @@ tape.test('test notary signing.', (assert) => {
   assert.equal(JSON.stringify(jsonOut), '[{"asset":"2369540753","sig":"HzA01At+Ipkfxgs2wiZOD23j0lPY5PxEt6S4QYbv2L96VgLo4QBsX/fTtjqxDADLljZp/wSquNmWzfd5VtRYbKM="},{"asset":"650700076","sig":"IB2HqxXLma9nc60lNTLkEsmbClqz3loBKd0CGZf7ZM4DYUKWk9z7wrrWlUt5Nwb9clvUed0vRh3Amkgnk9aW0gk="},{"asset":"2699372871","sig":"H/QRY9EMSK4Jx/fNPRZhbE+q4pXjoZeiFBaoLBNKLTqQXeQSMN97LCbLhJVd/t+DJVng+dkJJzTKuLcXepy/WVk="},{"asset":"402223530","sig":"H/92vEOHlgkXM4N0O/flKK5/U9ElB1XNWKDTrpusqyLbS0XlLUAGxPc90gfVV1wAIjx84VDzVQWOOoazHyoYTYo="},{"asset":"1537060536","sig":"IH9XYZ5ZKmwao09sFiw3i4+WnmrrHVh7aLck+7gUmiSRB2AbCvt/wft6xJLgUbcQcaUaGT+2r1yCx71fJs22SJ4="}]')
   assert.end()
 })
+tape.test('test extract memo.', (assert) => {
+  // transaction hex that has all notary signatures already but we will re-confirm them by assert.equal(tx.toHex(), txHex)
+  const txHex = '87000000000101d4de2a743378a40229f180bda29c701ec5761b95c2bb54b049937b4d02e894130300000000ffffffff04a8020000000000001600140b26e3403eeccdcf176b8c041ee99abf23e676e2a8020000000000001600144a1a3fb9007e655786946f3bac7bc2157bac56a60000000000000000676a4c640180a283a46703000f0111038ecde3c865411f21c18a05a3869649ffd01d335cebe56326b832ee1876bc6d785dc594b08165136664789379df4305bb09cefb23d1a743569e6fb1ec04923fbce2f7b9efde4104fefeafafafaf6d656d6f207465737420326a1a8747020000001600147dccd91471590db1eb4bcddb7bfe34fd076af31d02473044022032ea8f812ea8783aa8a436484b262e75b79c9b1f0677e8e4ddb41ee0e984e64102201f710f31e1c7a1a2be7994a556e8c094c7632b3bc926890c44643626b523dea101210288644767b596e5781bcc840fdbdf730bed12d4e0962e842b27ab8276ab409f4800000000'
+  const tx = bitcoin.Transaction.fromHex(txHex)
+  assert.equal(syscointx.utils.isAssetAllocationTx(tx.version), true)
+  const memo = getMemoFromOpReturn(tx.outs, Buffer.from([0xfe, 0xfe, 0xaf, 0xaf, 0xaf, 0xaf]))
+  assert.equal(memo.toString(), 'memo test 2')
+  assert.end()
+})
 fixtures.forEach(function (f) {
   tape(f.description, function (t) {
     let utxos = f.utxoObj
