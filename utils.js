@@ -22,6 +22,31 @@ const ASSET_UPDATE_AUXFEE = 32 // can you update aux fees?
 const ASSET_UPDATE_CAPABILITYFLAGS = 64 // can you update capability flags?
 const ASSET_CAPABILITY_ALL = 127
 const ASSET_INIT = 128 // upon asset creation
+const bitcoinNetworks = { mainnet: bitcoin.networks.bitcoin, testnet: bitcoin.networks.testnet }
+const syscoinNetworks = {
+  mainnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'sys',
+    bip32: {
+      public: 0x0488b21e,
+      private: 0x0488ade4
+    },
+    pubKeyHash: 0x3f,
+    scriptHash: 0x05,
+    wif: 0x80
+  },
+  testnet: {
+    messagePrefix: '\x18Syscoin Signed Message:\n',
+    bech32: 'tsys',
+    bip32: {
+      public: 0x043587cf,
+      private: 0x04358394
+    },
+    pubKeyHash: 0x41,
+    scriptHash: 0xc4,
+    wif: 0xef
+  }
+}
 function isNonAssetFunded (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
 }
@@ -184,6 +209,7 @@ module.exports = {
   isAssetAllocationTx: isAssetAllocationTx,
   isSyscoinTx: isSyscoinTx,
   signHash: signHash,
-  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE
-
+  MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE,
+  syscoinNetworks: syscoinNetworks,
+  bitcoinNetworks: bitcoinNetworks
 }
