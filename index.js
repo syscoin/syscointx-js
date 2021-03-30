@@ -342,10 +342,9 @@ function signNotarizationSigHashesWithWIF (assets, WIF, network) {
   for (const value of assets.values()) {
     if (value.notarysighash) {
       const sig = utils.signHash(WIF, value.notarysighash, network)
-      if (!sig) {
-        return false
+      if (sig) {
+        value.notarysig = sig
       }
-      value.notarysig = sig
     }
   }
   return true
