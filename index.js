@@ -273,12 +273,11 @@ function createNotarizationOutput (assets) {
   }
   return jsonOut
 }
-// get all assets found in an asset tx returned in a map of assets keyed by asset guid
-function getAssetsFromTx (tx) {
+
+function getAllocationsFromTx (tx) {
   if (!utils.isSyscoinTx(tx.version)) {
     return null
   }
-  const assets = new Map()
   let opReturnScript = null
   for (let i = 0; i < tx.outs.length; i++) {
     const output = tx.outs[i]
@@ -302,6 +301,16 @@ function getAssetsFromTx (tx) {
   if (!allocation) {
     return null
   }
+  return allocation
+}
+
+// get all assets found in an asset tx returned in a map of assets keyed by asset guid
+function getAssetsFromTx (tx) {
+  const allocation = getAllocationsFromTx(tx)
+  if (!allocation) {
+    return null
+  }
+  const assets = new Map()
   allocation.forEach(assetAllocation => {
     assets.set(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid), {})
   })
@@ -309,26 +318,10 @@ function getAssetsFromTx (tx) {
 }
 // get all notarizations stored of assets in assets map as notarysighash stored in assets
 function getNotarizationSigHash (tx, assets, network) {
-  let opReturnScript = null
-  for (let i = 0; i < tx.outs.length; i++) {
-    const output = tx.outs[i]
-    if (!output.script) {
-      continue
-    }
-    // find opreturn
-    const chunks = bitcoin.script.decompile(output.script)
-    if (chunks[0] === bitcoinops.OP_RETURN) {
-      opReturnScript = chunks[1]
-      break
-    }
+  const allocation = getAllocationsFromTx(tx)
+  if (!allocation) {
+    return null
   }
-
-  if (opReturnScript === null) {
-    console.log('no OPRETURN script found')
-    return false
-  }
-
-  const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
   for (const [assetGuid, valueAssetObj] of assets.entries()) {
     const assetAllocation = allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
     if (assetAllocation) {
@@ -694,5 +687,6 @@ module.exports = {
   signNotarizationSigHashesWithWIF: signNotarizationSigHashesWithWIF,
   getNotarizationSigHash: getNotarizationSigHash,
   getAssetsFromTx: getAssetsFromTx,
+  getAllocationsFromTx: getAllocationsFromTx,
   createNotarizationOutput: createNotarizationOutput
 }
