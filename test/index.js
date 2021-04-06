@@ -162,17 +162,10 @@ function sanitizeBlockbookUTXOs (utxoObj, network, txOpts, assetMap, excludeZero
         if (!assetObj) {
           return
         }
-        // allowOtherNotarizedAssetInputs option if set will skip this check, by default this check is done and inputs will be skipped if they are notary asset inputs and user is not sending those assets (used as gas to fulfill requested output amount of SYS)
-        if (!txOpts.allowOtherNotarizedAssetInputs) {
-          // if notarization is required but it isn't a requested asset to send we skip this UTXO as would be dependent on a foreign asset notary
-          if (assetObj.notarykeyid && assetObj.notarykeyid.length > 0) {
-            const baseAssetID = coinSelect.utils.getBaseAssetID(utxo.assetInfo.assetGuid)
-            // for allocation sends asset map may have NFT key for asset send it would have base key ID always
-            if (!assetMap || (!assetMap.has(baseAssetID) && !assetMap.has(utxo.assetInfo.assetGuid))) {
-              console.log('SKIPPING notary utxo')
-              return
-            }
-          }
+        // not sending this asset (assetMap) and assetWhiteList option if set with this asset will skip this check, by default this check is done and inputs will be skipped if they are notary asset inputs and user is not sending those assets (used as gas to fulfill requested output amount of SYS)
+        if ((!assetMap || !assetMap.has(utxo.assetInfo.assetGuid)) && (txOpts.assetWhiteList && !txOpts.assetWhiteList.has(utxo.assetInfo.assetGuid))) {
+          console.log('SKIPPING utxo')
+          return
         }
       }
       sanitizedUtxos.utxos.push(newUtxo)

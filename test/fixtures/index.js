@@ -487,7 +487,7 @@ module.exports = [{
   description: 'send multi asset allocations with notarization + gas in non-selected asset',
   version: utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND,
   txOpts: {
-    allowOtherNotarizedAssetInputs: true
+    assetWhiteList: new Map([['1635229542', {}]])
   },
   feeRate: new BN(10),
   utxoObj: {
