@@ -499,16 +499,17 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   } else {
     assetOpts.pubdata = Buffer.from('')
   }
-
+  const defaultNotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
+  const defaultAuxfeedetails = { auxfeekeyid: Buffer.from(''), auxfees: [] }
   assetOpts.symbol = Buffer.from(utils.encodeToBase64(assetOpts.symbol))
   assetOpts.description = null
   assetOpts.prevcontract = Buffer.from('')
   assetOpts.prevpubdata = Buffer.from('')
   assetOpts.notarykeyid = assetOpts.notarykeyid || Buffer.from('')
   assetOpts.prevnotarykeyid = Buffer.from('')
-  assetOpts.notarydetails = assetOpts.notarydetails || { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
+  assetOpts.notarydetails = assetOpts.notarydetails || defaultNotarydetails
   assetOpts.prevnotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
-  assetOpts.auxfeedetails = assetOpts.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfees: [] }
+  assetOpts.auxfeedetails = assetOpts.auxfeedetails || defaultAuxfeedetails
   assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfees: [] }
   assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || utils.ASSET_CAPABILITY_ALL
   assetOpts.prevupdatecapabilityflags = 0
@@ -524,10 +525,10 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   if (assetOpts.notarykeyid.length > 0) {
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
   }
-  if (assetOpts.notarydetails.length > 0) {
+  if (!_.isEqual(assetOpts.notarydetails, defaultNotarydetails)) {
     updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
   }
-  if (assetOpts.auxfeedetails.length > 0) {
+  if (!_.isEqual(assetOpts.auxfeedetails, defaultAuxfeedetails)) {
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
   }
   if (assetOpts.updatecapabilityflags !== 0) {
