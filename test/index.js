@@ -209,7 +209,7 @@ tape.test('test notary signing.', (assert) => {
   assets.delete('2305793883')
   assert.equal(syscointx.getNotarizationSigHash(tx, assets, syscoinNetworks.testnet), true)
   assert.equal(syscointx.signNotarizationSigHashesWithWIF(assets, WIF, syscoinNetworks.testnet), true)
-  assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), -1)
+  assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), { output: null, index: -1 })
   assert.equal(tx.toHex(), txHex)
   // asset map has notarysig in buffer ie: assets.get('650700076').notarysig
   const jsonOut = syscointx.createNotarizationOutput(assets)
@@ -239,7 +239,7 @@ tape.test('test notary signing with nfts.', (assert) => {
   const assets = new Map()
   assets.set('3203433383', assets1.get('3203433383'))
   assets.set('3327471780', assets2.get('3327471780'))
-  assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), -1)
+  assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), { output: null, index: -1 })
   // asset map has notarysig in buffer ie: assets.get('650700076').notarysig
   const jsonOut = syscointx.createNotarizationOutput(assets)
   // output to client

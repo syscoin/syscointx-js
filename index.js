@@ -186,11 +186,11 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
 // update all notarizations stored in assets map (as notarysig field) into re-serialized output scripts
 function addNotarizationSignatures (txVersion, assets, outputs) {
   if (!utils.isAssetAllocationTx(txVersion)) {
-    return -1
+    return { output: null, index: -1 }
   }
   // if no sigs then just return, not applicable to notarizing
   if (assets.size === 0) {
-    return -1
+    return { output: null, index: -1 }
   }
   let opReturnScript = null
   let dataScript = null
@@ -211,7 +211,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
 
   if (opReturnScript === null) {
     console.log('no OPRETURN script found')
-    return -1
+    return { output: null, index: -1 }
   }
   const extractMemoFromScript = true
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
@@ -258,10 +258,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
       dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
     }
   }
-  if (dataScript !== null) {
-    outputs[opReturnIndex].script = dataScript
-  }
-  return opReturnIndex
+  return { output: dataScript, index: opReturnIndex }
 }
 // from assets map create the JSON output to send back to client from a notary server
 function createNotarizationOutput (assets) {
