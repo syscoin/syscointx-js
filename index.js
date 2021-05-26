@@ -274,13 +274,10 @@ function createNotarizationOutput (assets) {
   return jsonOut
 }
 
-function getAllocationsFromTx (tx) {
-  if (!utils.isSyscoinTx(tx.version)) {
-    return null
-  }
+function getAllocationsFromOutputs (outputs) {
   let opReturnScript = null
-  for (let i = 0; i < tx.outs.length; i++) {
-    const output = tx.outs[i]
+  for (let i = 0; i < outputs.length; i++) {
+    const output = outputs[i]
     if (!output.script) {
       continue
     }
@@ -302,6 +299,25 @@ function getAllocationsFromTx (tx) {
     return null
   }
   return allocation
+}
+
+function getAllocationsFromTx (tx) {
+  if (!utils.isSyscoinTx(tx.version)) {
+    return null
+  }
+  return getAllocationsFromOutputs(tx.outs)
+}
+
+function getAssetsFromOutputs (outputs) {
+  const allocation = getAllocationsFromOutputs(outputs)
+  if (!allocation) {
+    return null
+  }
+  const assets = new Map()
+  allocation.forEach(assetAllocation => {
+    assets.set(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid), {})
+  })
+  return assets
 }
 
 // get all assets found in an asset tx returned in a map of assets keyed by asset guid
@@ -689,5 +705,7 @@ module.exports = {
   getNotarizationSigHash: getNotarizationSigHash,
   getAssetsFromTx: getAssetsFromTx,
   getAllocationsFromTx: getAllocationsFromTx,
+  getAllocationsFromOutputs: getAllocationsFromOutputs,
+  getAssetsFromOutputs: getAssetsFromOutputs,
   createNotarizationOutput: createNotarizationOutput
 }
