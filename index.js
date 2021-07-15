@@ -1,7 +1,8 @@
 const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const utils = require('./utils')
-const syscoinBufferUtils = require('./bufferutilsassets.js')
+const assetBufferUtils = require('./bufferutilsassets.js')
+const syscoinBufferUtils = require('./bufferutils.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
@@ -39,7 +40,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
       // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
       optimizeOutputs(res.outputs, assetAllocations)
-      const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+      const assetAllocationsBuffer = assetBufferUtils.serializeAssetAllocations(assetAllocations)
       let buffArr
       if (dataBuffer) {
         buffArr = [assetAllocationsBuffer, dataBuffer]
@@ -215,7 +216,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
   }
   const extractMemoFromScript = true
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-    const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript, extractMemoFromScript)
+    const allocationBurn = assetBufferUtils.deserializeAllocationBurn(opReturnScript, extractMemoFromScript)
     let assetAllocation = null
     for (const [assetGuid, valueAssetObj] of assets.entries()) {
       if (valueAssetObj.notarysig) {
@@ -225,8 +226,8 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
         }
       }
     }
-    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocationBurn.allocation)
-    const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
+    const assetAllocationsBuffer = assetBufferUtils.serializeAssetAllocations(allocationBurn.allocation)
+    const allocationBurnBuffer = assetBufferUtils.serializeAllocationBurn(allocationBurn)
     let buffArr
     if (allocationBurn.allocation.memo) {
       buffArr = [assetAllocationsBuffer, allocationBurnBuffer, allocationBurn.allocation.memo]
@@ -237,7 +238,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
       dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
     }
   } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
-    const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript, null, extractMemoFromScript)
+    const allocation = assetBufferUtils.deserializeAssetAllocations(opReturnScript, null, extractMemoFromScript)
     let assetAllocation = null
     for (const [assetGuid, valueAssetObj] of assets.entries()) {
       if (valueAssetObj.notarysig) {
@@ -247,7 +248,7 @@ function addNotarizationSignatures (txVersion, assets, outputs) {
         }
       }
     }
-    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocation)
+    const assetAllocationsBuffer = assetBufferUtils.serializeAssetAllocations(allocation)
     let buffArr
     if (allocation.memo) {
       buffArr = [assetAllocationsBuffer, allocation.memo]
@@ -291,7 +292,7 @@ function getAllocationsFromOutputs (outputs) {
     return null
   }
 
-  const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
+  const allocation = assetBufferUtils.deserializeAssetAllocations(opReturnScript)
   if (!allocation) {
     return null
   }
@@ -338,7 +339,7 @@ function getNotarizationSigHash (tx, assets, network) {
   for (const [assetGuid, valueAssetObj] of assets.entries()) {
     const assetAllocation = allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
     if (assetAllocation) {
-      valueAssetObj.notarysighash = syscoinBufferUtils.getNotarizationSigHash(tx, assetAllocation, network)
+      valueAssetObj.notarysighash = assetBufferUtils.getNotarizationSigHash(tx, assetAllocation, network)
     }
   }
   return true
@@ -386,7 +387,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     assetAllocation.values[0].n = outputs.length
   }
 
-  let assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+  let assetAllocationsBuffer = assetBufferUtils.serializeAssetAllocations(assetAllocations)
   let buffArr
   if (dataBuffer) {
     buffArr = [assetAllocationsBuffer, dataBuffer]
@@ -433,7 +434,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   optimizeOutputs(outputs, assetAllocations)
 
   // serialize allocations again they may have been changed in optimization
-  assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
+  assetAllocationsBuffer = assetBufferUtils.serializeAssetAllocations(assetAllocations)
   if (dataBuffer) {
     buffArr = [assetAllocationsBuffer, dataBuffer]
   } else {
@@ -549,7 +550,7 @@ function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate
   }
   assetOpts.updateflags = updateflags
 
-  const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
+  const dataBuffer = assetBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
@@ -601,7 +602,7 @@ function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAd
     updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
   }
   assetOpts.updateflags = updateflags
-  const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
+  const dataBuffer = assetBufferUtils.serializeAsset(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
@@ -642,7 +643,7 @@ function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN
   }
   const dataAmount = ext.BN_ZERO
-  const dataBuffer = syscoinBufferUtils.serializeAllocationBurn(assetOpts)
+  const dataBuffer = assetBufferUtils.serializeAllocationBurn(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
@@ -669,7 +670,7 @@ function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
     console.log('Could not find receipt value in receipt parent nodes')
     return
   }
-  const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
+  const dataBuffer = assetBufferUtils.serializeMintSyscoin(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
@@ -687,7 +688,8 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
 module.exports = {
   utils: utils,
   coinSelect: coinSelect,
-  bufferUtils: syscoinBufferUtils,
+  bufferUtils: assetBufferUtils,
+  syscoinBufferUtils: syscoinBufferUtils,
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
   assetNew: assetNew,
