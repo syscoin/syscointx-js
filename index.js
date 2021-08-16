@@ -330,30 +330,39 @@ function getAssetsFromTx (tx) {
   return assets
 }
 // get all notarizations stored of assets in assets map as notarysighash stored in assets
-function getNotarizationSigHash (tx, assets, network) {
+function fillNotarizationSigHash (tx, assets, network) {
   const allocation = getAllocationsFromTx(tx)
   if (!allocation) {
-    return null
+    return false
   }
+  let filledNotarySigHash = false
   for (const [assetGuid, valueAssetObj] of assets.entries()) {
     const assetAllocation = allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
     if (assetAllocation) {
-      valueAssetObj.notarysighash = syscoinBufferUtils.getNotarizationSigHash(tx, assetAllocation, network)
+      valueAssetObj.notarysighash = syscoinBufferUtils.fillNotarizationSigHash(tx, assetAllocation, network)
+      filledNotarySigHash = true
     }
   }
-  return true
+  return filledNotarySigHash
 }
 // sign all notary sig hashes with WIF
-function signNotarizationSigHashesWithWIF (assets, WIF, network) {
+function signAndFillNotarizationSigHashesWithWIF (assets, WIF, network) {
+  let signedNotary = false
   for (const value of assets.values()) {
     if (value.notarysighash) {
-      const sig = utils.signHash(WIF, value.notarysighash, network)
-      if (sig) {
-        value.notarysig = sig
+      try {
+        const sig = utils.signHash(WIF, value.notarysighash, network)
+        if (sig) {
+          value.notarysig = sig
+          signedNotary = true
+        }
+      } catch (exception) {
+        console.log('Could not sign notarysighash ' + exception)
+        continue
       }
     }
   }
-  return true
+  return signedNotary
 }
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
   let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, utxos.assets)
@@ -698,8 +707,8 @@ module.exports = {
   assetAllocationMint: assetAllocationMint,
   syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
   addNotarizationSignatures: addNotarizationSignatures,
-  signNotarizationSigHashesWithWIF: signNotarizationSigHashesWithWIF,
-  getNotarizationSigHash: getNotarizationSigHash,
+  signAndFillNotarizationSigHashesWithWIF: signAndFillNotarizationSigHashesWithWIF,
+  fillNotarizationSigHash: fillNotarizationSigHash,
   getAssetsFromTx: getAssetsFromTx,
   getAllocationsFromTx: getAllocationsFromTx,
   getAllocationsFromOutputs: getAllocationsFromOutputs,

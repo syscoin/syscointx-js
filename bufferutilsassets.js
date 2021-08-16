@@ -333,7 +333,7 @@ function serializeAssetVout (assetAllocation, bufferWriter) {
   bufferWriter.writeVarSlice(assetAllocation.notarysig)
 }
 
-function getNotarizationSigHash (tx, vecOut, network) {
+function fillNotarizationSigHash (tx, vecOut, network) {
   let tbuffer = Buffer.from([])
   tbuffer = Buffer.allocUnsafe((36 * tx.ins.length) + 8 + (54 * vecOut.values.length))
   const bufferWriter = new bufferUtils.BufferWriter(tbuffer, 0)
@@ -423,7 +423,7 @@ module.exports = {
   serializeAllocationBurn: serializeAllocationBurn,
   deserializeAllocationBurn: deserializeAllocationBurn,
   deserializeAssetAllocations: deserializeAssetAllocations,
-  getNotarizationSigHash: getNotarizationSigHash,
+  fillNotarizationSigHash: fillNotarizationSigHash,
   writeUInt64LE: writeUInt64LE,
   readUInt64LE: readUInt64LE
 

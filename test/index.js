@@ -207,8 +207,14 @@ tape.test('test notary signing.', (assert) => {
   // if(assets.has('1234')) { console.log('asset guid 1234 output found in transaction')}
   // this asset does not require notarization
   assets.delete('2305793883')
-  assert.equal(syscointx.getNotarizationSigHash(tx, assets, syscoinNetworks.testnet), true)
-  assert.equal(syscointx.signNotarizationSigHashesWithWIF(assets, WIF, syscoinNetworks.testnet), true)
+  assert.equal(syscointx.fillNotarizationSigHash(tx, assets, syscoinNetworks.testnet), true)
+  // if nothing gets filled return false
+  assert.equal(syscointx.fillNotarizationSigHash(tx, new Map(), syscoinNetworks.testnet), false)
+  assert.equal(syscointx.signAndFillNotarizationSigHashesWithWIF(assets, WIF, syscoinNetworks.testnet), true)
+  // ensure that a fake WIF won't sign and return false
+  assert.equal(syscointx.signAndFillNotarizationSigHashesWithWIF(assets, WIF + 'a', syscoinNetworks.testnet), false)
+  // if no assets provided in map, nothing gets signed/filled return false
+  assert.equal(syscointx.signAndFillNotarizationSigHashesWithWIF(new Map(), WIF, syscoinNetworks.testnet), false)
   assert.notEqual(syscointx.addNotarizationSignatures(tx.version, assets, tx.outs), { output: null, index: -1 })
   assert.equal(tx.toHex(), txHex)
   // asset map has notarysig in buffer ie: assets.get('650700076').notarysig
@@ -230,12 +236,12 @@ tape.test('test notary signing with nfts.', (assert) => {
   assert.equal(assetsParsed.has('1015209962'), true)
   const assets1 = new Map()
   assets1.set('3203433383', {})
-  assert.equal(syscointx.getNotarizationSigHash(tx, assets1, syscoinNetworks.testnet), true)
-  assert.equal(syscointx.signNotarizationSigHashesWithWIF(assets1, WIF1, syscoinNetworks.testnet), true)
+  assert.equal(syscointx.fillNotarizationSigHash(tx, assets1, syscoinNetworks.testnet), true)
+  assert.equal(syscointx.signAndFillNotarizationSigHashesWithWIF(assets1, WIF1, syscoinNetworks.testnet), true)
   const assets2 = new Map()
   assets2.set('3327471780', {})
-  assert.equal(syscointx.getNotarizationSigHash(tx, assets2, syscoinNetworks.testnet), true)
-  assert.equal(syscointx.signNotarizationSigHashesWithWIF(assets2, WIF2, syscoinNetworks.testnet), true)
+  assert.equal(syscointx.fillNotarizationSigHash(tx, assets2, syscoinNetworks.testnet), true)
+  assert.equal(syscointx.signAndFillNotarizationSigHashesWithWIF(assets2, WIF2, syscoinNetworks.testnet), true)
   const assets = new Map()
   assets.set('3203433383', assets1.get('3203433383'))
   assets.set('3327471780', assets2.get('3327471780'))
