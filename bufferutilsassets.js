@@ -368,15 +368,15 @@ function serializeAssetAllocations (assetAllocations) {
 function serializeMintSyscoin (mintSyscoin) {
   const buffer = Buffer.allocUnsafe(byteLengthMintSyscoin(mintSyscoin))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-  bufferWriter.writeVarSlice(mintSyscoin.ethtxid)
+  bufferWriter.writeSlice(mintSyscoin.ethtxid)
   bufferWriter.writeSlice(mintSyscoin.blockhash)
   bufferWriter.writeUInt16(mintSyscoin.txpos)
   bufferWriter.writeVarSlice(mintSyscoin.txparentnodes)
   bufferWriter.writeVarSlice(mintSyscoin.txpath)
   bufferWriter.writeUInt16(mintSyscoin.receiptpos)
   bufferWriter.writeVarSlice(mintSyscoin.receiptparentnodes)
-  bufferWriter.writeVarSlice(mintSyscoin.txroot)
-  bufferWriter.writeVarSlice(mintSyscoin.receiptroot)
+  bufferWriter.writeSlice(mintSyscoin.txroot)
+  bufferWriter.writeSlice(mintSyscoin.receiptroot)
   // need to slice because of compress varInt functionality in PutUint which is not accounted for in byteLengthMintSyscoin
   return buffer.slice(0, bufferWriter.offset)
 }
@@ -386,15 +386,15 @@ function deserializeMintSyscoin (buffer) {
   const mintSyscoin = {} // TODO ts this
 
   mintSyscoin.allocation = deserializeAssetAllocations(null, bufferReader)
-  mintSyscoin.ethtxid = bufferReader.readVarSlice()
+  mintSyscoin.ethtxid = bufferReader.readSlice(32)
   mintSyscoin.blockhash = bufferReader.readSlice(32)
   mintSyscoin.txpos = bufferReader.readUInt16()
   mintSyscoin.txparentnodes = bufferReader.readVarSlice()
   mintSyscoin.txpath = bufferReader.readVarSlice()
   mintSyscoin.receiptpos = bufferReader.readUInt16()
   mintSyscoin.receiptparentnodes = bufferReader.readVarSlice()
-  mintSyscoin.txroot = bufferReader.readVarSlice()
-  mintSyscoin.receiptroot = bufferReader.readVarSlice()
+  mintSyscoin.txroot = bufferReader.readSlice(32)
+  mintSyscoin.receiptroot = bufferReader.readSlice(32)
   return mintSyscoin
 }
 
