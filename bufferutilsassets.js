@@ -136,11 +136,11 @@ function byteLengthAssetAllocation (assetAllocations) {
 
 function byteLengthMintSyscoin (mintSyscoin) {
   let len = 0
-  len += varuint.encodingLength(mintSyscoin.ethtxid.length) + mintSyscoin.ethtxid.length
-  len += varuint.encodingLength(mintSyscoin.txroot.length) + mintSyscoin.txroot.length
+  len += 32 // ethtxid
+  len += 32 // txroot
   len += varuint.encodingLength(mintSyscoin.txparentnodes.length) + mintSyscoin.txparentnodes.length
   len += varuint.encodingLength(mintSyscoin.txpath.length) + mintSyscoin.txpath.length
-  len += varuint.encodingLength(mintSyscoin.receiptroot.length) + mintSyscoin.receiptroot.length
+  len += 32 // receiptroot
   len += varuint.encodingLength(mintSyscoin.receiptparentnodes.length) + mintSyscoin.receiptparentnodes.length
   len += 32 // blockhash
   len += 2 // receipt pos
