@@ -723,10 +723,10 @@ module.exports = [{
   ]),
   expected: {
     rbf: true,
-    numOutputs: 3,
-    script: Buffer.from('6a0d01858addbd6002013102310000', 'hex'),
+    numOutputs: 2,
+    script: Buffer.from('6a0d01858addbd6002003101310000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '1635229536', values: [{ n: 1, value: new BN(500000000) }, { n: 2, value: new BN(500000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+      allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(500000000) }, { n: 1, value: new BN(500000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },
@@ -761,10 +761,10 @@ module.exports = [{
   ]),
   expected: {
     rbf: true,
-    numOutputs: 4,
-    script: Buffer.from('6a1301858addbd6003010102a0c2c3b27703000000', 'hex'),
+    numOutputs: 3,
+    script: Buffer.from('6a1301858addbd6003000101a0c2c3b27702000000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '1635229536', values: [{ n: 1, value: new BN(1) }, { n: 2, value: new BN(999999999) }, { n: 3, value: new BN(0) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+      allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(1) }, { n: 1, value: new BN(999999999) }, { n: 2, value: new BN(0) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },

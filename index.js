@@ -386,11 +386,9 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       return null
     }
     burnAllocationValue = new BN(assetAllocation.values[0].value)
-    if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM) {
-      outputs.splice(0, 1)
-      // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
-      updateAllocationIndexes(assetAllocations, 0)
-    }
+    outputs.splice(0, 1)
+    // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
+    updateAllocationIndexes(assetAllocations, 0)
     // point first allocation to next output (burn output)
     assetAllocation.values[0].n = outputs.length
   }
