@@ -723,10 +723,10 @@ module.exports = [{
   ]),
   expected: {
     rbf: true,
-    numOutputs: 2,
-    script: Buffer.from('6a0d01858addbd6002003101310000', 'hex'),
+    numOutputs: 3,
+    script: Buffer.from('6a0d01858addbd6002013100310000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(500000000) }, { n: 1, value: new BN(500000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+      allocation: [{ assetGuid: '1635229536', values: [{ n: 1, value: new BN(500000000) }, { n: 0, value: new BN(500000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },
@@ -761,10 +761,48 @@ module.exports = [{
   ]),
   expected: {
     rbf: true,
-    numOutputs: 3,
-    script: Buffer.from('6a1301858addbd6003000101a0c2c3b27702000000', 'hex'),
+    numOutputs: 4,
+    script: Buffer.from('6a1301858addbd6003010100a0c2c3b27703000000', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '1635229536', values: [{ n: 0, value: new BN(1) }, { n: 1, value: new BN(999999999) }, { n: 2, value: new BN(0) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+      allocation: [{ assetGuid: '1635229536', values: [{ n: 1, value: new BN(1) }, { n: 0, value: new BN(999999999) }, { n: 3, value: new BN(0) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
+    }
+  }
+},
+{
+  description: 'burn asset allocation to syscoin with asset change',
+  version: utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
+  txOpts: {
+    rbf: true
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: '8f83fa7a076c2aa4cdc4a2f2880c6582ffe698d01c368ffde957210bee76da46', vout: 0, address: '001483516da577935f20272bca9b62d262a4226f9c72', value: '680', assetInfo: { assetGuid: '123456', value: '300000000' } },
+      { txid: '8f83fa7a076c2aa4cdc4a2f2880c6582ffe698d01c368ffde957210bee76da46', vout: 2, address: '001461dffc7defeb8e0b5cd00ff24c196f71fe31feee', value: '18999985280', assetInfo: { assetGuid: '123456', value: '500000000' } }
+    ],
+    assets: [
+      {
+        assetGuid: '123456',
+        decimals: 8,
+        pubData: { desc: utils.encodeToBase64('publicvalue') },
+        symbol: utils.encodeToBase64('SYSX'),
+        updateCapabilityFlags: 127,
+        totalSupply: '0',
+        maxSupply: '100000000000'
+      }
+    ]
+  },
+  assetOpts: { ethaddress: Buffer.from('', 'hex') },
+  sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+  assetMap: new Map([
+    ['123456', { changeAddress: 'tsys1qayjjfphgsf960jlu0amqvnl5kudv53wapvng0p', outputs: [{ value: new BN(300000000) }] }]
+  ]),
+  expected: {
+    rbf: true,
+    numOutputs: 3,
+    script: Buffer.from('6a0b0186c34002011d00130000', 'hex'),
+    asset: {
+      allocation: [{ assetGuid: '123456', values: [{ n: 1, value: new BN(300000000) }, { n: 0, value: new BN(200000000) }], notarysig: Buffer.from('') }], ethaddress: Buffer.from('', 'hex')
     }
   }
 },

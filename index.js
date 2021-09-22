@@ -435,9 +435,11 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     assetMap.delete('0')
     assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
-
-  // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
-  optimizeOutputs(outputs, assetAllocations)
+  // optimizeOutputs reorganizes outputs and we need to ensure we don't do this with burntosyscoin since its assumed first output has the sys value we need to create
+  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
+    optimizeOutputs(outputs, assetAllocations)
+  }
 
   // serialize allocations again they may have been changed in optimization
   assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(assetAllocations)
