@@ -386,9 +386,14 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       return null
     }
     burnAllocationValue = new BN(assetAllocation.values[0].value)
-    outputs.splice(0, 1)
-    // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
-    updateAllocationIndexes(assetAllocations, 0)
+    // remove first output if there is more than one
+    // it will be size of 1 if you burn the exact right amount you own (ie utxo has 5 sysx and you burn 5 sysx)
+    // it will be size of 2 if you burn less than what you own (ie utxo has 5 sysx and you burn 4 sysx, 1 sysx should be change)
+    if (outputs.length > 1) {
+      outputs.splice(0, 1)
+      // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
+      updateAllocationIndexes(assetAllocations, 0)
+    }
     // point first allocation to next output (burn output)
     assetAllocation.values[0].n = outputs.length
   }
