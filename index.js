@@ -393,6 +393,8 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       outputs.splice(0, 1)
       // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
       updateAllocationIndexes(assetAllocations, 0)
+    } else {
+      outputs[0].assetChangeIndex = undefined
     }
     // point first allocation to next output (burn output)
     assetAllocation.values[0].n = outputs.length
