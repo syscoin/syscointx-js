@@ -1006,15 +1006,15 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    ['2615707979', { changeAddress: 'tsys1qjfcltq5yljfzkljxdnlc0ffmhqudz8ltq0z695', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'tsys1qjfcltq5yljfzkljxdnlc0ffmhqudz8ltq0z695', outputs: [{ value: new BN(1000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-    numOutputs: 2,
-    script: Buffer.from('6a0a0188dea1914b01006400', 'hex'),
+    numOutputs: 3,
+    script: Buffer.from('6a0a0188dea1914b01000700', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(10000000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(1000000) }], notarysig: Buffer.from('') }]
     },
     receivingIndex: 11,
     changeIndex: 3
@@ -1055,15 +1055,15 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(900000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
     numOutputs: 3,
-    script: Buffer.from('6a130288dea1914b0100640087cabdbd5b01025800', 'hex'),
+    script: Buffer.from('6a130288dea1914b0100560087cabdbd5b01025800', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(10000000000) }], notarysig: Buffer.from('') }, { assetGuid: '2305793883', values: [{ n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000) }], notarysig: Buffer.from('') }, { assetGuid: '2305793883', values: [{ n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
@@ -1102,15 +1102,15 @@ module.exports = [{
   },
   sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
   assetMap: new Map([
-    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+    ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(900000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
   ]),
   expected: {
     rbf: true,
     version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
     numOutputs: 3,
-    script: Buffer.from('6a0c0188dea1914b020064025800', 'hex'),
+    script: Buffer.from('6a0c0188dea1914b020059025800', 'hex'),
     asset: {
-      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(10000000000) }, { n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
+      allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000000) }, { n: 2, value: new BN(90000000) }], notarysig: Buffer.from('') }]
     }
   }
 },
