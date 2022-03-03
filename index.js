@@ -443,9 +443,8 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
   // optimizeOutputs reorganizes outputs and we need to ensure we don't do this with burntosyscoin since its assumed first output has the sys value we need to create
-  // also with allocation mint extractdestination doesn't work with null data output so we need to make sure null data output comes after any witness spend matching nevm burn address
-  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN && txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
-    // re-use syscoin change outputs for allocation change outputs where we can, this will possibly remove one output and save fees
+  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
     optimizeOutputs(outputs, assetAllocations)
   }
 
