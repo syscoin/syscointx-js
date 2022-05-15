@@ -7,7 +7,7 @@ const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 const _ = require('lodash')
 
-function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
+function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
   let dataBuffer = null
   let totalMemoLen = 0
   if (txOpts.memo) {
@@ -25,7 +25,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate) {
     dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
   }
   let txVersion = 2
-  const inputsArr = []
+  inputsArr = inputsArr || []
   let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets, txVersion, totalMemoLen)
   if (!res.inputs || !res.outputs) {
     const assetAllocations = []
