@@ -151,6 +151,9 @@ function byteLengthMintSyscoin (mintSyscoin) {
 function byteLengthAllocationBurn (allocationBurn) {
   return varuint.encodingLength(allocationBurn.ethaddress.length) + allocationBurn.ethaddress.length
 }
+function byteLengthPoDA (poda) {
+  return varuint.encodingLength(poda.versionhash.length) + varuint.encodingLength(poda.data.length)
+}
 
 function serializeNotaryDetails (notaryDetails, bufferWriter) {
   bufferWriter.writeVarSlice(notaryDetails.endpoint)
@@ -414,6 +417,23 @@ function deserializeAllocationBurn (buffer, extractMemo) {
   return allocationBurn
 }
 
+function serializePoDA (poda) {
+  const buffer = Buffer.allocUnsafe(byteLengthPoDA(poda))
+  const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
+  bufferWriter.writeVarSlice(poda.versionhash)
+  bufferWriter.writeVarSlice(poda.data)
+  return buffer
+}
+
+function deserializePoDA (buffer, extractMemo) {
+  const bufferReader = new bufferUtils.BufferReader(buffer)
+  const poda = {} // TODO ts this
+
+  poda.versionhash = bufferReader.readVarSlice()
+  poda.data = bufferReader.readVarSlice()
+  return poda
+}
+
 module.exports = {
   serializeAsset: serializeAsset,
   deserializeAsset: deserializeAsset,
@@ -423,6 +443,8 @@ module.exports = {
   serializeAllocationBurn: serializeAllocationBurn,
   deserializeAllocationBurn: deserializeAllocationBurn,
   deserializeAssetAllocations: deserializeAssetAllocations,
+  serializePoDA: serializePoDA,
+  deserializePoDA: deserializePoDA,
   fillNotarizationSigHash: fillNotarizationSigHash,
   writeUInt64LE: writeUInt64LE,
   readUInt64LE: readUInt64LE
