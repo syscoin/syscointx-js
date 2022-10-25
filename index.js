@@ -305,40 +305,6 @@ function getAllocationsFromTx (tx) {
   return getAllocationsFromOutputs(tx.outs)
 }
 
-function getPoDAFromOutputs (outputs) {
-  let opReturnScript = null
-  for (let i = 0; i < outputs.length; i++) {
-    const output = outputs[i]
-    if (!output.script) {
-      continue
-    }
-    // find opreturn
-    const chunks = bitcoin.script.decompile(output.script)
-    if (chunks[0] === bitcoinops.OP_RETURN) {
-      opReturnScript = chunks[1]
-      break
-    }
-  }
-
-  if (opReturnScript === null) {
-    console.log('no OPRETURN script found')
-    return null
-  }
-
-  const allocation = syscoinBufferUtils.deserializePoDA(opReturnScript)
-  if (!allocation) {
-    return null
-  }
-  return allocation
-}
-
-function getPoDAFromTx (tx) {
-  if (!utils.isPoDATx(tx.version)) {
-    return null
-  }
-  return getPoDAFromOutputs(tx.outs)
-}
-
 function getAssetsFromOutputs (outputs) {
   const allocation = getAllocationsFromOutputs(outputs)
   if (!allocation) {
@@ -753,8 +719,6 @@ module.exports = {
   getAssetsFromTx: getAssetsFromTx,
   getAllocationsFromTx: getAllocationsFromTx,
   getAllocationsFromOutputs: getAllocationsFromOutputs,
-  getPoDAFromOutputs: getPoDAFromOutputs,
-  getPoDAFromTx: getPoDAFromTx,
   getAssetsFromOutputs: getAssetsFromOutputs,
   createNotarizationOutput: createNotarizationOutput
 }
