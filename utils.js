@@ -11,6 +11,7 @@ const SYSCOIN_TX_VERSION_ASSET_SEND = 132
 const SYSCOIN_TX_VERSION_ALLOCATION_MINT = 133
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM = 134
 const SYSCOIN_TX_VERSION_ALLOCATION_SEND = 135
+const SYSCOIN_TX_VERSION_NEVM_DATA = 137
 const COIN = 100000000
 const CENT = 1000000
 const ASSET_UPDATE_DATA = 1 // can you update public data field?
@@ -61,6 +62,9 @@ function isAssetAllocationTx (txVersion) {
 }
 function isSyscoinTx (txVersion) {
   return isAsset(txVersion) || isAssetAllocationTx(txVersion)
+}
+function isPoDATx (txVersion) {
+  return txVersion === SYSCOIN_TX_VERSION_NEVM_DATA
 }
 function USHRT_MAX () {
   return 65535
@@ -208,6 +212,7 @@ module.exports = {
   isAllocationBurn: isAllocationBurn,
   isAssetAllocationTx: isAssetAllocationTx,
   isSyscoinTx: isSyscoinTx,
+  isPoDATx: isPoDATx,
   signHash: signHash,
   MAX_BIP125_RBF_SEQUENCE: MAX_BIP125_RBF_SEQUENCE,
   syscoinNetworks: syscoinNetworks,
