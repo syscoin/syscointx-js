@@ -435,7 +435,7 @@ function deserializePoDA (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const poda = {} // TODO ts this
 
-  poda.versionhash = bufferReader.readVarSlice()
+  poda.blobHash = bufferReader.readVarSlice()
   return poda
 }
 
