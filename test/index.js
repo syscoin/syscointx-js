@@ -390,6 +390,20 @@ fixtures.forEach(function (f) {
           }
         }
       })
+    } else if (f.version === utils.SYSCOIN_TX_VERSION_NEVM_DATA) {
+      utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts)
+      const res = syscointx.createPoDA(txOpts, utxos, f.sysChangeAddress, f.feeRate)
+      t.same(res.outputs.length, f.expected.numOutputs)
+      t.same(res.txVersion, f.version)
+      res.outputs.forEach(output => {
+        if (output.script) {
+          // find opreturn
+          const chunks = bitcoin.script.decompile(output.script)
+          if (chunks[0] === bitcoinops.OP_RETURN) {
+            t.same(output.script, f.expected.script)
+          }
+        }
+      })
     } else if (f.version === 2) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts)
       const res = syscointx.createTransaction(txOpts, utxos, f.sysChangeAddress, f.outputs, f.feeRate)

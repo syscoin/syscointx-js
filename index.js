@@ -10,6 +10,7 @@ const _ = require('lodash')
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
   let dataBuffer = null
   let totalMemoLen = 0
+  let totalBlobLen = 0
   if (txOpts.memo) {
     if (!txOpts.memoHeader) {
       console.log('No Memo header defined')
@@ -26,11 +27,24 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   }
   let txVersion = 2
   inputsArr = inputsArr || []
-  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets, txVersion, totalMemoLen)
-  if (!res.inputs || !res.outputs) {
+  if (txOpts.blobHash) {
+    if (!txOpts.blobData) {
+      console.log('blobHash provided but no blobData in txOptions')
+      return null
+    }
+    totalBlobLen = txOpts.blobData.length
+    txVersion = utils.SYSCOIN_TX_VERSION_NEVM_DATA
+    dataBuffer = syscoinBufferUtils.serializePoDA({ blobHash: txOpts.blobHash })
+  }
+  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets, txVersion, totalMemoLen, totalBlobLen)
+  if (!res.inputs && !res.outputs) {
+    if (txOpts.blobHash) {
+      console.log('createTransaction: inputs or outputs are empty after coinSelect creating blob')
+      return null
+    }
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null, totalMemoLen)
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null)
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       return null
@@ -325,11 +339,11 @@ function getPoDAFromOutputs (outputs) {
     return null
   }
 
-  const allocation = syscoinBufferUtils.deserializePoDA(opReturnScript)
-  if (!allocation) {
+  const blob = syscoinBufferUtils.deserializePoDA(opReturnScript)
+  if (!blob) {
     return null
   }
-  return allocation
+  return blob
 }
 
 function getPoDAFromTx (tx) {
@@ -733,13 +747,20 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
   }
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
-
+function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
+  if (!txOpts.blobData || !txOpts.blobHash) {
+    console.log('Could not find blob txOpt fields, cannot create PoDA transaction')
+    return null
+  }
+  return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate)
+}
 module.exports = {
   utils: utils,
   coinSelect: coinSelect,
   bufferUtils: syscoinBufferUtils,
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
+  createPoDA: createPoDA,
   assetNew: assetNew,
   assetUpdate: assetUpdate,
   assetSend: assetSend,

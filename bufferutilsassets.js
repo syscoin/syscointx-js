@@ -152,7 +152,11 @@ function byteLengthAllocationBurn (allocationBurn) {
   return varuint.encodingLength(allocationBurn.ethaddress.length) + allocationBurn.ethaddress.length
 }
 function byteLengthPoDA (poda) {
-  return varuint.encodingLength(poda.versionhash.length) + varuint.encodingLength(poda.data.length)
+  let len = varuint.encodingLength(poda.blobHash.length) + poda.blobHash.length
+  if (poda.blobData) {
+    len += varuint.encodingLength(poda.blobData.length) + poda.blobData.length
+  }
+  return len
 }
 
 function serializeNotaryDetails (notaryDetails, bufferWriter) {
@@ -420,17 +424,18 @@ function deserializeAllocationBurn (buffer, extractMemo) {
 function serializePoDA (poda) {
   const buffer = Buffer.allocUnsafe(byteLengthPoDA(poda))
   const bufferWriter = new bufferUtils.BufferWriter(buffer, 0)
-  bufferWriter.writeVarSlice(poda.versionhash)
-  bufferWriter.writeVarSlice(poda.data)
+  bufferWriter.writeVarSlice(poda.blobHash)
+  if (poda.blobData) {
+    bufferWriter.writeVarSlice(poda.blobData)
+  }
   return buffer
 }
 
-function deserializePoDA (buffer, extractMemo) {
+function deserializePoDA (buffer) {
   const bufferReader = new bufferUtils.BufferReader(buffer)
   const poda = {} // TODO ts this
 
   poda.versionhash = bufferReader.readVarSlice()
-  poda.data = bufferReader.readVarSlice()
   return poda
 }
 

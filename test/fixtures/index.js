@@ -1115,6 +1115,29 @@ module.exports = [{
   }
 },
 {
+  description: 'create blob',
+  version: utils.SYSCOIN_TX_VERSION_NEVM_DATA,
+  txOpts: {
+    rbf: true,
+    blobData: Buffer.from('64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68aa', 'hex'),
+    blobHash: Buffer.from('f991f396a7ff769af02e0bd4cefe5c61e952eab289254348d49723da1fe420c9', 'hex')
+  },
+  feeRate: new BN(10),
+  utxoObj: {
+    utxos: [
+      { txid: '64dbfb02268b642f6a32a266bdd54add8989a1fa913b7414a642b5d85e964c68', vout: 0, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '1000000' },
+      { txid: '9f586de3e6d8ce33b1c6de709c992cb431cc324ab3bc6dff5537137aa4b17022', vout: 1, address: '001487e5ec8eb455b3bbf42c5d5f952f67c26793115d', value: '6900' }
+    ]
+  },
+  sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
+  expected: {
+    rbf: true,
+    version: utils.SYSCOIN_TX_VERSION_NEVM_DATA,
+    numOutputs: 2,
+    script: Buffer.from('6a2120f991f396a7ff769af02e0bd4cefe5c61e952eab289254348d49723da1fe420c9', 'hex')
+  }
+},
+{
   description: 'standard sys send',
   version: 2,
   txOpts: {
