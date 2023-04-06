@@ -569,7 +569,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
 }
 function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
-  const dataAmount = new BN(utils.COIN)
+  const dataAmount = ext.BN_ZERO
   assetOpts.contract = assetOpts.contract || Buffer.from('')
   if (assetOpts.description) {
     assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
