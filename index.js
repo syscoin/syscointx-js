@@ -25,7 +25,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   if (txOpts.memo) {
     dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
   }
-  let txVersion = 2
+  let txVersion = txOpts.txVersion || 2
   inputsArr = inputsArr || []
   if (txOpts.blobHash) {
     if (!txOpts.blobData) {
@@ -754,6 +754,37 @@ function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
   }
   return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate)
 }
+function sysMintFromNEVM (txOpts, utxos, sysChangeAddress, outputsArr, feeRate) {
+  txOpts.txVersion = utils.SYSCOIN_TX_VERSION_MINT
+  if (txOpts.txparentnodes.length > utils.USHRT_MAX()) {
+    console.log('tx parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', txOpts.txparentnodes.length)
+    return
+  }
+  if (txOpts.receiptparentnodes.length > utils.USHRT_MAX()) {
+    console.log('receipt parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', txOpts.receiptparentnodes.length)
+    return
+  }
+  // find byte offset of tx data in the parent nodes
+  txOpts.txpos = txOpts.txparentnodes.indexOf(txOpts.txvalue)
+  if (txOpts.txpos === -1) {
+    console.log('Could not find tx value in tx parent nodes')
+    return
+  }
+  // find byte offset of receipt data in the parent nodes
+  txOpts.receiptpos = txOpts.receiptparentnodes.indexOf(txOpts.receiptvalue)
+  if (txOpts.receiptpos === -1) {
+    console.log('Could not find receipt value in receipt parent nodes')
+    return
+  }
+  const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(txOpts)
+  const dataScript = bitcoin.payments.embed({ data: [Buffer.concat(dataBuffer)] }).output
+  const dataOutput = {
+    script: dataScript,
+    value: ext.BN_ZERO
+  }
+  outputsArr.push(dataOutput)
+  return createTransaction(txOpts, utxos, sysChangeAddress, outputsArr, feeRate)
+}
 module.exports = {
   utils: utils,
   coinSelect: coinSelect,
@@ -767,6 +798,7 @@ module.exports = {
   assetAllocationSend: assetAllocationSend,
   assetAllocationBurn: assetAllocationBurn,
   assetAllocationMint: assetAllocationMint,
+  sysMintFromNEVM: sysMintFromNEVM,
   syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
   addNotarizationSignatures: addNotarizationSignatures,
   signAndFillNotarizationSigHashesWithWIF: signAndFillNotarizationSigHashesWithWIF,
