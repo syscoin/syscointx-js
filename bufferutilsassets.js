@@ -121,7 +121,6 @@ function byteLengthAssetVout (assetAllocation) {
   let len = 8 // 8 byte uint64 asset guid
   len += varuint.encodingLength(assetAllocation.values.length)
   len += byteLengthAssetVoutValue() * assetAllocation.values.length
-  len += varuint.encodingLength(assetAllocation.notarysig.length) + assetAllocation.notarysig.length
   return len
 }
 
@@ -233,8 +232,7 @@ function deserializeAssetVout (bufferReader) {
   for (let j = 0; j < numOutputs; j++) {
     values.push(deserializeAssetVoutValue(bufferReader))
   }
-  const notarysig = bufferReader.readVarSlice()
-  return { assetGuid: assetGuid.toString(10), values: values, notarysig: notarysig }
+  return { assetGuid: assetGuid.toString(10), values: values }
 }
 
 function deserializeAssetAllocations (buffer, bufferReaderIn, extractMemo) {
@@ -337,7 +335,6 @@ function serializeAssetVout (assetAllocation, bufferWriter) {
   assetAllocation.values.forEach(output => {
     serializeAssetVoutValue(output, bufferWriter)
   })
-  bufferWriter.writeVarSlice(assetAllocation.notarysig)
 }
 
 function fillNotarizationSigHash (tx, vecOut, network) {
