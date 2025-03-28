@@ -3,11 +3,8 @@ const ext = require('./bn-extensions')
 const bitcoin = require('bitcoinjs-lib')
 const secp256k1 = require('secp256k1')
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
-const SYSCOIN_TX_VERSION_ASSET_ACTIVATE = 130
-const SYSCOIN_TX_VERSION_ASSET_UPDATE = 131
-const SYSCOIN_TX_VERSION_ASSET_SEND = 132
-const SYSCOIN_TX_VERSION_NEVM_DATA = 137
 
+const SYSCOIN_TX_VERSION_NEVM_DATA = 137
 const SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN = 138
 const SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION = 139
 const SYSCOIN_TX_VERSION_ALLOCATION_MINT = 140
@@ -16,15 +13,7 @@ const SYSCOIN_TX_VERSION_ALLOCATION_SEND = 142
 
 const COIN = 100000000
 const CENT = 1000000
-const ASSET_UPDATE_DATA = 1 // can you update public data field?
-const ASSET_UPDATE_CONTRACT = 2 // can you update smart contract?
-const ASSET_UPDATE_SUPPLY = 4 // can you update supply?
-const ASSET_UPDATE_NOTARY_KEY = 8 // can you update notary?
-const ASSET_UPDATE_NOTARY_DETAILS = 16 // can you update notary details?
-const ASSET_UPDATE_AUXFEE = 32 // can you update aux fees?
-const ASSET_UPDATE_CAPABILITYFLAGS = 64 // can you update capability flags?
-const ASSET_CAPABILITY_ALL = 127
-const ASSET_INIT = 128 // upon asset creation
+
 const bitcoinNetworks = { mainnet: bitcoin.networks.bitcoin, testnet: bitcoin.networks.testnet }
 const syscoinNetworks = {
   mainnet: {
@@ -51,10 +40,7 @@ const syscoinNetworks = {
   }
 }
 function isNonAssetFunded (txVersion) {
-  return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
-}
-function isAsset (txVersion) {
-  return txVersion === SYSCOIN_TX_VERSION_ASSET_ACTIVATE || txVersion === SYSCOIN_TX_VERSION_ASSET_UPDATE || txVersion === SYSCOIN_TX_VERSION_ASSET_SEND
+  return txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_MINT
 }
 function isAllocationBurn (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
@@ -63,7 +49,7 @@ function isAssetAllocationTx (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN || txVersion === SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION || txVersion === SYSCOIN_TX_VERSION_ALLOCATION_SEND
 }
 function isSyscoinTx (txVersion) {
-  return isAsset(txVersion) || isAssetAllocationTx(txVersion)
+  return isAssetAllocationTx(txVersion)
 }
 function isPoDATx (txVersion) {
   return txVersion === SYSCOIN_TX_VERSION_NEVM_DATA
@@ -138,38 +124,6 @@ function decompressAmount (x) {
   return n
 }
 
-function encodeToBase64 (input) {
-  return Buffer.from(input).toString('base64')
-}
-
-function decodeFromBase64ToASCII (input) {
-  return Buffer.from(input, 'base64').toString()
-}
-
-function decodeFieldsFromPubData (jsonData) {
-  const res = {}
-  if (jsonData.desc) {
-    res.desc = decodeFromBase64ToASCII(jsonData.desc)
-  }
-  return res
-}
-
-function encodePubDataFromFields (pubData) {
-  const obj = {}
-  if (pubData && pubData.desc) {
-    obj.desc = encodeToBase64(pubData.desc)
-  }
-  return Buffer.from(JSON.stringify(obj))
-}
-
-function generateAssetGuid (input) {
-  let bigNum = new BN(input.txId, 16)
-  bigNum = ext.add(bigNum, new BN(input.vout))
-  // clear bits 33 and up to keep low 32 bits
-  bigNum = bigNum.maskn(32)
-  return bigNum.toString(10)
-}
-
 function signHash (WIF, hash, network) {
   const keyPair = bitcoin.ECPair.fromWIF(WIF, network)
   const sigObj = secp256k1.sign(hash, keyPair.privateKey)
@@ -182,11 +136,6 @@ function signHash (WIF, hash, network) {
 }
 
 module.exports = {
-  generateAssetGuid: generateAssetGuid,
-  encodeToBase64: encodeToBase64,
-  decodeFromBase64ToASCII: decodeFromBase64ToASCII,
-  encodePubDataFromFields: encodePubDataFromFields,
-  decodeFieldsFromPubData: decodeFieldsFromPubData,
   compressAmount: compressAmount,
   decompressAmount: decompressAmount,
   USHRT_MAX: USHRT_MAX,
@@ -194,24 +143,11 @@ module.exports = {
   CENT: CENT,
   SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN: SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN,
   SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION: SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-  SYSCOIN_TX_VERSION_ASSET_ACTIVATE: SYSCOIN_TX_VERSION_ASSET_ACTIVATE,
-  SYSCOIN_TX_VERSION_ASSET_UPDATE: SYSCOIN_TX_VERSION_ASSET_UPDATE,
-  SYSCOIN_TX_VERSION_ASSET_SEND: SYSCOIN_TX_VERSION_ASSET_SEND,
   SYSCOIN_TX_VERSION_ALLOCATION_MINT: SYSCOIN_TX_VERSION_ALLOCATION_MINT,
   SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM: SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM,
   SYSCOIN_TX_VERSION_ALLOCATION_SEND: SYSCOIN_TX_VERSION_ALLOCATION_SEND,
   SYSCOIN_TX_VERSION_NEVM_DATA: SYSCOIN_TX_VERSION_NEVM_DATA,
-  ASSET_UPDATE_DATA: ASSET_UPDATE_DATA,
-  ASSET_UPDATE_CONTRACT: ASSET_UPDATE_CONTRACT,
-  ASSET_UPDATE_SUPPLY: ASSET_UPDATE_SUPPLY,
-  ASSET_UPDATE_NOTARY_KEY: ASSET_UPDATE_NOTARY_KEY,
-  ASSET_UPDATE_NOTARY_DETAILS: ASSET_UPDATE_NOTARY_DETAILS,
-  ASSET_UPDATE_AUXFEE: ASSET_UPDATE_AUXFEE,
-  ASSET_UPDATE_CAPABILITYFLAGS: ASSET_UPDATE_CAPABILITYFLAGS,
-  ASSET_INIT: ASSET_INIT,
-  ASSET_CAPABILITY_ALL: ASSET_CAPABILITY_ALL,
   isNonAssetFunded: isNonAssetFunded,
-  isAsset: isAsset,
   isAllocationBurn: isAllocationBurn,
   isAssetAllocationTx: isAssetAllocationTx,
   isSyscoinTx: isSyscoinTx,

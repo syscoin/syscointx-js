@@ -5,7 +5,6 @@ const syscoinBufferUtils = require('./bufferutilsassets.js')
 const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
-const _ = require('lodash')
 
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
   let dataBuffer = null
@@ -36,7 +35,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     txVersion = utils.SYSCOIN_TX_VERSION_NEVM_DATA
     dataBuffer = syscoinBufferUtils.serializePoDA({ blobHash: txOpts.blobHash })
   }
-  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, utxos.assets, txVersion, totalMemoLen, totalBlobLen)
+  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, txVersion, totalMemoLen, totalBlobLen)
   if (!res.inputs && !res.outputs) {
     if (txOpts.blobHash) {
       console.log('createTransaction: inputs or outputs are empty after coinSelect creating blob')
@@ -67,18 +66,6 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
         value: ext.BN_ZERO
       }
       res.outputs.push(dataOutput)
-      let bOverrideRBF = false
-      assetAllocations.forEach(assetAllocation => {
-        const assetObj = utxos.assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid))
-        if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
-          bOverrideRBF = true
-        }
-      })
-      // if rbf not set but one asset was notarized turn on rbf
-      if (bOverrideRBF && txOpts.rbf !== true) {
-        console.log('override RBF settings due to notary with instant transfers enabled')
-        txOpts.rbf = true
-      }
     }
   } else if (dataBuffer) {
     const updatedData = [dataBuffer]
@@ -197,94 +184,6 @@ function optimizeFees (txVersion, inputs, outputs, feeRate) {
   }
 }
 
-// update all notarizations stored in assets map (as notarysig field) into re-serialized output scripts
-function addNotarizationSignatures (txVersion, assets, outputs) {
-  if (!utils.isAssetAllocationTx(txVersion)) {
-    return { output: null, index: -1 }
-  }
-  // if no sigs then just return, not applicable to notarizing
-  if (assets.size === 0) {
-    return { output: null, index: -1 }
-  }
-  let opReturnScript = null
-  let dataScript = null
-  let opReturnIndex = 0
-  for (let i = 0; i < outputs.length; i++) {
-    const output = outputs[i]
-    if (!output.script) {
-      continue
-    }
-    // find opreturn
-    const chunks = bitcoin.script.decompile(output.script)
-    if (chunks[0] === bitcoinops.OP_RETURN) {
-      opReturnScript = chunks[1]
-      opReturnIndex = i
-      break
-    }
-  }
-
-  if (opReturnScript === null) {
-    console.log('no OPRETURN script found')
-    return { output: null, index: -1 }
-  }
-  const extractMemoFromScript = true
-  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
-    const allocationBurn = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript, extractMemoFromScript)
-    let assetAllocation = null
-    for (const [assetGuid, valueAssetObj] of assets.entries()) {
-      if (valueAssetObj.notarysig) {
-        assetAllocation = allocationBurn.allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
-        if (assetAllocation) {
-          assetAllocation.notarysig = valueAssetObj.notarysig
-        }
-      }
-    }
-    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocationBurn.allocation)
-    const allocationBurnBuffer = syscoinBufferUtils.serializeAllocationBurn(allocationBurn)
-    let buffArr
-    if (allocationBurn.allocation.memo) {
-      buffArr = [assetAllocationsBuffer, allocationBurnBuffer, allocationBurn.allocation.memo]
-    } else {
-      buffArr = [assetAllocationsBuffer, allocationBurnBuffer]
-    }
-    if (assetAllocation !== undefined) {
-      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
-    }
-  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND || txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
-    const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript, null, extractMemoFromScript)
-    let assetAllocation = null
-    for (const [assetGuid, valueAssetObj] of assets.entries()) {
-      if (valueAssetObj.notarysig) {
-        assetAllocation = allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
-        if (assetAllocation) {
-          assetAllocation.notarysig = valueAssetObj.notarysig
-        }
-      }
-    }
-    const assetAllocationsBuffer = syscoinBufferUtils.serializeAssetAllocations(allocation)
-    let buffArr
-    if (allocation.memo) {
-      buffArr = [assetAllocationsBuffer, allocation.memo]
-    } else {
-      buffArr = [assetAllocationsBuffer]
-    }
-    if (assetAllocation !== undefined) {
-      dataScript = bitcoin.payments.embed({ data: [Buffer.concat(buffArr)] }).output
-    }
-  }
-  return { output: dataScript, index: opReturnIndex }
-}
-// from assets map create the JSON output to send back to client from a notary server
-function createNotarizationOutput (assets) {
-  const jsonOut = []
-  for (const [assetGuid, valueAssetObj] of assets.entries()) {
-    if (valueAssetObj.notarysig) {
-      jsonOut.push({ asset: assetGuid, sig: valueAssetObj.notarysig.toString('base64') })
-    }
-  }
-  return jsonOut
-}
-
 function getAllocationsFromOutputs (outputs) {
   let opReturnScript = null
   for (let i = 0; i < outputs.length; i++) {
@@ -360,7 +259,7 @@ function getAssetsFromOutputs (outputs) {
   }
   const assets = new Map()
   allocation.forEach(assetAllocation => {
-    assets.set(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid), {})
+    assets.set(assetAllocation.assetGuid, {})
   })
   return assets
 }
@@ -373,47 +272,13 @@ function getAssetsFromTx (tx) {
   }
   const assets = new Map()
   allocation.forEach(assetAllocation => {
-    assets.set(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid), {})
+    assets.set(assetAllocation.assetGuid, {})
   })
   return assets
 }
-// get all notarizations stored of assets in assets map as notarysighash stored in assets
-function fillNotarizationSigHash (tx, assets, network) {
-  const allocation = getAllocationsFromTx(tx)
-  if (!allocation) {
-    return false
-  }
-  let filledNotarySigHash = false
-  for (const [assetGuid, valueAssetObj] of assets.entries()) {
-    const assetAllocation = allocation.find(voutAsset => coinSelect.utils.getBaseAssetID(voutAsset.assetGuid) === assetGuid)
-    if (assetAllocation) {
-      valueAssetObj.notarysighash = syscoinBufferUtils.fillNotarizationSigHash(tx, assetAllocation, network)
-      filledNotarySigHash = true
-    }
-  }
-  return filledNotarySigHash
-}
-// sign all notary sig hashes with WIF
-function signAndFillNotarizationSigHashesWithWIF (assets, WIF, network) {
-  let signedNotary = false
-  for (const value of assets.values()) {
-    if (value.notarysighash) {
-      try {
-        const sig = utils.signHash(WIF, value.notarysighash, network)
-        if (sig) {
-          value.notarysig = sig
-          signedNotary = true
-        }
-      } catch (exception) {
-        console.log('Could not sign notarysighash ' + exception)
-        continue
-      }
-    }
-  }
-  return signedNotary
-}
+
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, utxos.assets)
+  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion)
 
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) {
@@ -476,19 +341,6 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       // first output is special it is the sys amount being minted
       outputs[0].value = burnAllocationValue
     }
-  } else if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    assetAllocations[0].assetGuid = txOpts.assetGuid || utils.generateAssetGuid(inputs[0])
-    const assetOutput = outputs.filter(output => output.assetInfo && output.assetInfo.assetGuid === '0')
-    if (assetOutput.length !== 1) {
-      console.log('createAssetTransaction: invalid number of asset outputs for activate')
-      return null
-    }
-    // update outputs
-    assetOutput[0].assetInfo.assetGuid = assetAllocations[0].assetGuid
-    // update assetMap with new key
-    const oldAssetMapEntry = assetMap.get('0')
-    assetMap.delete('0')
-    assetMap.set(assetAllocations[0].assetGuid, oldAssetMapEntry)
   }
   // optimizeOutputs reorganizes outputs and we need to ensure we don't do this with burntosyscoin since its assumed first output has the sys value we need to create
   if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
@@ -513,25 +365,6 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   })
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
-  if (utxos.assets) {
-    let bOverrideRBF = false
-    assetAllocations.forEach(assetAllocation => {
-      const assetObj = utxos.assets.get(coinSelect.utils.getBaseAssetID(assetAllocation.assetGuid))
-      if (assetObj && assetObj.notarydetails && assetObj.notarydetails.instanttransfers) {
-        bOverrideRBF = true
-      }
-    })
-    // if rbf not set but one asset was notarized turn on rbf
-    if (bOverrideRBF && txOpts.rbf !== true) {
-      console.log('override RBF settings due to notary with instant transfers enabled')
-      txOpts.rbf = true
-    }
-  }
-  // asset activates not allowed to use RBF because of deterministic asset GUID requirements based on input hash
-  if (txVersion === utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE) {
-    txOpts.rbf = false
-  }
-
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
     // ensure ZDAG is only enable for transactions <= 1100 bytes
     const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
@@ -566,113 +399,6 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     }
   })
   return { txVersion, inputs, outputs }
-}
-function assetNew (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
-  const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_ACTIVATE
-  const dataAmount = ext.BN_ZERO
-  assetOpts.contract = assetOpts.contract || Buffer.from('')
-  if (assetOpts.description) {
-    assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
-  } else {
-    assetOpts.pubdata = Buffer.from('')
-  }
-  const defaultNotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
-  const defaultAuxfeedetails = { auxfeekeyid: Buffer.from(''), auxfees: [] }
-  assetOpts.symbol = Buffer.from(utils.encodeToBase64(assetOpts.symbol))
-  assetOpts.description = null
-  assetOpts.prevcontract = Buffer.from('')
-  assetOpts.prevpubdata = Buffer.from('')
-  assetOpts.notarykeyid = assetOpts.notarykeyid || Buffer.from('')
-  assetOpts.prevnotarykeyid = Buffer.from('')
-  assetOpts.notarydetails = assetOpts.notarydetails || defaultNotarydetails
-  assetOpts.prevnotarydetails = { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
-  assetOpts.auxfeedetails = assetOpts.auxfeedetails || defaultAuxfeedetails
-  assetOpts.prevauxfeedetails = { auxfeekeyid: Buffer.from(''), auxfees: [] }
-  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || utils.ASSET_CAPABILITY_ALL
-  assetOpts.prevupdatecapabilityflags = 0
-  assetOpts.totalsupply = ext.BN_ZERO
-
-  let updateflags = utils.ASSET_INIT
-  if (assetOpts.contract.length > 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
-  }
-  if (assetOpts.pubdata.length > 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_DATA
-  }
-  if (assetOpts.notarykeyid.length > 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
-  }
-  if (!_.isEqual(assetOpts.notarydetails, defaultNotarydetails)) {
-    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
-  }
-  if (!_.isEqual(assetOpts.auxfeedetails, defaultAuxfeedetails)) {
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
-  }
-  if (assetOpts.updatecapabilityflags !== 0) {
-    updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
-  }
-  assetOpts.updateflags = updateflags
-
-  const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
-}
-
-function assetUpdate (assetGuid, assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
-  if (!utxos.assets.has(assetGuid)) {
-    console.log('Asset input not found in UTXO set passed in')
-    return null
-  }
-  const assetObj = utxos.assets.get(assetGuid)
-  const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_UPDATE
-  const dataAmount = ext.BN_ZERO
-  assetOpts.precision = assetObj.precision
-  assetOpts.symbol = Buffer.from('')
-  assetOpts.contract = assetOpts.contract || assetObj.contract
-  if (assetOpts.description) {
-    assetOpts.pubdata = utils.encodePubDataFromFields({ desc: assetOpts.description })
-  } else {
-    assetOpts.pubdata = assetObj.pubdata
-  }
-  assetOpts.notarykeyid = assetOpts.notarykeyid || assetObj.notarykeyid
-  assetOpts.notarydetails = assetOpts.notarydetails || assetObj.notarydetails
-  assetOpts.auxfeekeyid = assetOpts.auxfeekeyid || assetObj.auxfeekeyid
-  assetOpts.auxfeedetails = assetOpts.auxfeedetails || assetObj.auxfeedetails
-  assetOpts.updatecapabilityflags = assetOpts.updatecapabilityflags || assetObj.updatecapabilityflags
-  let updateflags = 0
-  // if fields that can be edited are the same we clear them so they aren't updated and we reduce tx payload
-  if (!_.isEqual(assetObj.contract, assetOpts.contract)) {
-    assetOpts.prevcontract = assetObj.contract || Buffer.from('')
-    updateflags = updateflags | utils.ASSET_UPDATE_CONTRACT
-  }
-  if (!_.isEqual(assetObj.pubdata, assetOpts.pubdata)) {
-    assetOpts.prevpubdata = assetObj.pubdata || Buffer.from('')
-    updateflags = updateflags | utils.ASSET_UPDATE_DATA
-  }
-  if (!_.isEqual(assetObj.updatecapabilityflags, assetOpts.updatecapabilityflags)) {
-    assetOpts.prevupdatecapabilityflags = assetObj.updatecapabilityflags
-    updateflags = updateflags | utils.ASSET_UPDATE_CAPABILITYFLAGS
-  }
-  if (!_.isEqual(assetObj.notarykeyid, assetOpts.notarykeyid)) {
-    assetOpts.prevnotarykeyid = assetObj.notarykeyid || Buffer.from('')
-    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_KEY
-  }
-  if (!_.isEqual(assetObj.notarydetails, assetOpts.notarydetails)) {
-    assetOpts.prevnotarydetails = assetObj.notarydetails || { endpoint: Buffer.from(''), instanttransfers: 0, hdrequired: 0 }
-    updateflags = updateflags | utils.ASSET_UPDATE_NOTARY_DETAILS
-  }
-  if (!_.isEqual(assetObj.auxfeedetails, assetOpts.auxfeedetails)) {
-    assetOpts.prevauxfeedetails = assetObj.auxfeedetails || { auxfeekeyid: Buffer.from(''), auxfees: [] }
-    updateflags = updateflags | utils.ASSET_UPDATE_AUXFEE
-  }
-  assetOpts.updateflags = updateflags
-  const dataBuffer = syscoinBufferUtils.serializeAsset(assetOpts)
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
-}
-function assetSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
-  const txVersion = utils.SYSCOIN_TX_VERSION_ASSET_SEND
-  const dataAmount = ext.BN_ZERO
-  const dataBuffer = null
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
 }
 
 function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
@@ -761,21 +487,14 @@ module.exports = {
   createTransaction: createTransaction,
   createAssetTransaction: createAssetTransaction,
   createPoDA: createPoDA,
-  assetNew: assetNew,
-  assetUpdate: assetUpdate,
-  assetSend: assetSend,
   assetAllocationSend: assetAllocationSend,
   assetAllocationBurn: assetAllocationBurn,
   assetAllocationMint: assetAllocationMint,
   syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
-  addNotarizationSignatures: addNotarizationSignatures,
-  signAndFillNotarizationSigHashesWithWIF: signAndFillNotarizationSigHashesWithWIF,
-  fillNotarizationSigHash: fillNotarizationSigHash,
   getAssetsFromTx: getAssetsFromTx,
   getAllocationsFromTx: getAllocationsFromTx,
   getAllocationsFromOutputs: getAllocationsFromOutputs,
   getPoDAFromOutputs: getPoDAFromOutputs,
   getPoDAFromTx: getPoDAFromTx,
-  getAssetsFromOutputs: getAssetsFromOutputs,
-  createNotarizationOutput: createNotarizationOutput
+  getAssetsFromOutputs: getAssetsFromOutputs
 }
