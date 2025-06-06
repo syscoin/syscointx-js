@@ -42,7 +42,7 @@ module.exports = [
     txOpts: {
       rbf: true,
       memo: Buffer.from('memo for send'),
-      memoHeader: memoHeader
+      memoHeader
     },
     feeRate: new BN(10),
     utxoObj: {
@@ -781,7 +781,7 @@ module.exports = [
     txOpts: {
       rbf: true,
       memo: Buffer.from('test'),
-      memoHeader: memoHeader
+      memoHeader
     },
     feeRate: new BN(10),
     utxoObj: {
@@ -807,7 +807,7 @@ module.exports = [
     txOpts: {
       rbf: true,
       memo: Buffer.from('26f6b17b715bcd5fda921108b3bedd9a3d89ea58c666a40a3e5a6f833a454e36'),
-      memoHeader: memoHeader
+      memoHeader
     },
     feeRate: new BN(10),
     utxoObj: {

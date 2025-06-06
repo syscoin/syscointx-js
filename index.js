@@ -480,21 +480,388 @@ function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
   }
   return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate)
 }
+
+function decodeRawTransaction (tx, network) {
+  const decoded = {
+    txid: tx.getId(),
+    hash: tx.getHash().toString('hex'),
+    version: tx.version,
+    size: tx.byteLength(),
+    vsize: tx.virtualSize(),
+    weight: tx.weight(),
+    locktime: tx.locktime,
+    vin: [],
+    vout: [],
+    syscoin: null
+  }
+
+  // Decode inputs
+  tx.ins.forEach((input, index) => {
+    const vin = {
+      txid: Buffer.from(input.hash).reverse().toString('hex'),
+      vout: input.index,
+      scriptSig: {
+        asm: bitcoin.script.toASM(input.script),
+        hex: input.script.toString('hex')
+      },
+      sequence: input.sequence
+    }
+
+    // Add witness data if present
+    if (input.witness && input.witness.length > 0) {
+      vin.txinwitness = input.witness.map(w => w.toString('hex'))
+    }
+
+    decoded.vin.push(vin)
+  })
+
+  // Decode outputs
+  tx.outs.forEach((output, index) => {
+    const vout = {
+      value: output.value / 100000000, // Convert satoshis to coins
+      n: index,
+      scriptPubKey: {
+        asm: bitcoin.script.toASM(output.script),
+        hex: output.script.toString('hex'),
+        type: getOutputType(output.script),
+        reqSigs: getRequiredSigs(output.script),
+        addresses: getOutputAddresses(output.script, network)
+      }
+    }
+    decoded.vout.push(vout)
+  })
+
+  // Decode Syscoin-specific data
+  decoded.syscoin = decodeSyscoinData(tx)
+
+  return decoded
+}
+
+function getOutputType (script) {
+  try {
+    const chunks = bitcoin.script.decompile(script)
+    if (!chunks) return 'nonstandard'
+
+    // OP_RETURN
+    if (chunks[0] === bitcoinops.OP_RETURN) {
+      return 'nulldata'
+    }
+
+    // P2PKH
+    if (chunks.length === 5 &&
+        chunks[0] === bitcoinops.OP_DUP &&
+        chunks[1] === bitcoinops.OP_HASH160 &&
+        Buffer.isBuffer(chunks[2]) &&
+        chunks[2].length === 20 &&
+        chunks[3] === bitcoinops.OP_EQUALVERIFY &&
+        chunks[4] === bitcoinops.OP_CHECKSIG) {
+      return 'pubkeyhash'
+    }
+
+    // P2SH
+    if (chunks.length === 3 &&
+        chunks[0] === bitcoinops.OP_HASH160 &&
+        Buffer.isBuffer(chunks[1]) &&
+        chunks[1].length === 20 &&
+        chunks[2] === bitcoinops.OP_EQUAL) {
+      return 'scripthash'
+    }
+
+    // P2WPKH
+    if (chunks.length === 2 &&
+        chunks[0] === bitcoinops.OP_0 &&
+        Buffer.isBuffer(chunks[1]) &&
+        chunks[1].length === 20) {
+      return 'witness_v0_keyhash'
+    }
+
+    // P2WSH
+    if (chunks.length === 2 &&
+        chunks[0] === bitcoinops.OP_0 &&
+        Buffer.isBuffer(chunks[1]) &&
+        chunks[1].length === 32) {
+      return 'witness_v0_scripthash'
+    }
+
+    // P2PK
+    if (chunks.length === 2 &&
+        Buffer.isBuffer(chunks[0]) &&
+        (chunks[0].length === 33 || chunks[0].length === 65) &&
+        chunks[1] === bitcoinops.OP_CHECKSIG) {
+      return 'pubkey'
+    }
+
+    // Multisig
+    if (chunks.length >= 4 &&
+        chunks[chunks.length - 1] === bitcoinops.OP_CHECKMULTISIG) {
+      return 'multisig'
+    }
+
+    return 'nonstandard'
+  } catch (error) {
+    return 'nonstandard'
+  }
+}
+
+function getRequiredSigs (script) {
+  try {
+    const chunks = bitcoin.script.decompile(script)
+    if (!chunks) return null
+
+    // Multisig
+    if (chunks.length >= 4 &&
+        chunks[chunks.length - 1] === bitcoinops.OP_CHECKMULTISIG) {
+      const m = chunks[0]
+      // Handle OP_1 through OP_16 opcodes
+      if (typeof m === 'number') {
+        if (m >= bitcoinops.OP_1 && m <= bitcoinops.OP_16) {
+          return m - bitcoinops.OP_1 + 1
+        } else if (m >= 1 && m <= 16) {
+          return m
+        }
+      }
+    }
+
+    // Standard single sig types
+    const type = getOutputType(script)
+    if (['pubkeyhash', 'scripthash', 'witness_v0_keyhash', 'witness_v0_scripthash', 'pubkey'].includes(type)) {
+      return 1
+    }
+
+    return null
+  } catch (error) {
+    return null
+  }
+}
+
+function getOutputAddresses (script, network) {
+  try {
+    const chunks = bitcoin.script.decompile(script)
+    if (!chunks) return []
+
+    const type = getOutputType(script)
+    const targetNetwork = network || utils.syscoinNetworks.mainnet
+
+    switch (type) {
+      case 'pubkeyhash':
+        return [bitcoin.address.fromOutputScript(script, targetNetwork)]
+      case 'scripthash':
+        return [bitcoin.address.fromOutputScript(script, targetNetwork)]
+      case 'witness_v0_keyhash':
+        return [bitcoin.address.fromOutputScript(script, targetNetwork)]
+      case 'witness_v0_scripthash':
+        return [bitcoin.address.fromOutputScript(script, targetNetwork)]
+      case 'multisig': {
+        const addresses = []
+        for (let i = 1; i < chunks.length - 2; i++) {
+          if (Buffer.isBuffer(chunks[i])) {
+            try {
+              const pubkey = chunks[i]
+              const hash = bitcoin.crypto.hash160(pubkey)
+              addresses.push(bitcoin.address.toBase58Check(hash, targetNetwork.pubKeyHash))
+            } catch (e) {
+              // Skip invalid pubkeys
+            }
+          }
+        }
+        return addresses
+      }
+      default:
+        return []
+    }
+  } catch (error) {
+    return []
+  }
+}
+
+function decodeSyscoinData (tx) {
+  const syscoinData = {
+    txtype: getSyscoinTxType(tx.version),
+    version: tx.version,
+    allocations: null,
+    burn: null,
+    mint: null,
+    poda: null
+  }
+
+  try {
+    // Decode asset allocations
+    if (utils.isAssetAllocationTx(tx.version)) {
+      const allocations = getAllocationsFromTx(tx)
+      if (allocations) {
+        syscoinData.allocations = {
+          assets: allocations.map(allocation => ({
+            assetGuid: allocation.assetGuid,
+            values: allocation.values.map(value => ({
+              n: value.n,
+              value: value.value.toString(),
+              valueFormatted: (value.value.toNumber() / 100000000).toFixed(8)
+            }))
+          }))
+        }
+      }
+    }
+
+    // Decode allocation burn data
+    if (utils.isAllocationBurn(tx.version)) {
+      const burnData = decodeBurnData(tx)
+      if (burnData) {
+        syscoinData.burn = burnData
+      }
+    }
+
+    // Decode mint data
+    if (tx.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
+      const mintData = decodeMintData(tx)
+      if (mintData) {
+        syscoinData.mint = mintData
+      }
+    }
+
+    // Decode PoDA data
+    if (utils.isPoDATx(tx.version)) {
+      const podaData = getPoDAFromTx(tx)
+      if (podaData) {
+        syscoinData.poda = {
+          blobHash: podaData.blobHash.toString('hex'),
+          blobData: podaData.blobData ? podaData.blobData.toString('hex') : null
+        }
+      }
+    }
+
+    return syscoinData
+  } catch (error) {
+    console.log('Error decoding Syscoin data:', error)
+    return syscoinData
+  }
+}
+
+function getSyscoinTxType (version) {
+  switch (version) {
+    case utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN:
+      return 'assetallocationburn_to_syscoin'
+    case utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION:
+      return 'syscoinburn_to_allocation'
+    case utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT:
+      return 'assetallocation_mint'
+    case utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM:
+      return 'assetallocationburn_to_ethereum'
+    case utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND:
+      return 'assetallocation_send'
+    case utils.SYSCOIN_TX_VERSION_NEVM_DATA:
+      return 'nevm_data'
+    default:
+      return version === 1 || version === 2 ? 'bitcoin' : 'unknown'
+  }
+}
+
+function decodeBurnData (tx) {
+  try {
+    let opReturnScript = null
+    for (let i = 0; i < tx.outs.length; i++) {
+      const output = tx.outs[i]
+      const chunks = bitcoin.script.decompile(output.script)
+      if (chunks && chunks[0] === bitcoinops.OP_RETURN && chunks[1]) {
+        opReturnScript = chunks[1]
+        break
+      }
+    }
+
+    if (!opReturnScript) {
+      return null
+    }
+
+    const burnData = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript, true)
+    if (!burnData) {
+      return null
+    }
+
+    return {
+      ethaddress: burnData.ethaddress.toString('hex'),
+      allocation: burnData.allocation
+        ? burnData.allocation.map(allocation => ({
+          assetGuid: allocation.assetGuid,
+          values: allocation.values.map(value => ({
+            n: value.n,
+            value: value.value.toString(),
+            valueFormatted: (value.value.toNumber() / 100000000).toFixed(8)
+          }))
+        }))
+        : null,
+      memo: burnData.memo ? burnData.memo.toString('hex') : null
+    }
+  } catch (error) {
+    console.log('Error decoding burn data:', error)
+    return null
+  }
+}
+
+function decodeMintData (tx) {
+  try {
+    let opReturnScript = null
+    for (let i = 0; i < tx.outs.length; i++) {
+      const output = tx.outs[i]
+      const chunks = bitcoin.script.decompile(output.script)
+      if (chunks && chunks[0] === bitcoinops.OP_RETURN && chunks[1]) {
+        opReturnScript = chunks[1]
+        break
+      }
+    }
+
+    if (!opReturnScript) {
+      return null
+    }
+
+    const mintData = syscoinBufferUtils.deserializeMintSyscoin(opReturnScript)
+    if (!mintData) {
+      return null
+    }
+
+    return {
+      allocation: mintData.allocation
+        ? mintData.allocation.map(allocation => ({
+          assetGuid: allocation.assetGuid,
+          values: allocation.values.map(value => ({
+            n: value.n,
+            value: value.value.toString(),
+            valueFormatted: (value.value.toNumber() / 100000000).toFixed(8)
+          }))
+        }))
+        : null,
+      ethtxid: mintData.ethtxid.toString('hex'),
+      blockhash: mintData.blockhash.toString('hex'),
+      txpos: mintData.txpos,
+      txparentnodes: mintData.txparentnodes.toString('hex'),
+      txpath: mintData.txpath.toString('hex'),
+      receiptpos: mintData.receiptpos,
+      receiptparentnodes: mintData.receiptparentnodes.toString('hex'),
+      txroot: mintData.txroot.toString('hex'),
+      receiptroot: mintData.receiptroot.toString('hex')
+    }
+  } catch (error) {
+    console.log('Error decoding mint data:', error)
+    return null
+  }
+}
+
 module.exports = {
-  utils: utils,
-  coinSelect: coinSelect,
+  utils,
+  coinSelect,
   bufferUtils: syscoinBufferUtils,
-  createTransaction: createTransaction,
-  createAssetTransaction: createAssetTransaction,
-  createPoDA: createPoDA,
-  assetAllocationSend: assetAllocationSend,
-  assetAllocationBurn: assetAllocationBurn,
-  assetAllocationMint: assetAllocationMint,
-  syscoinBurnToAssetAllocation: syscoinBurnToAssetAllocation,
-  getAssetsFromTx: getAssetsFromTx,
-  getAllocationsFromTx: getAllocationsFromTx,
-  getAllocationsFromOutputs: getAllocationsFromOutputs,
-  getPoDAFromOutputs: getPoDAFromOutputs,
-  getPoDAFromTx: getPoDAFromTx,
-  getAssetsFromOutputs: getAssetsFromOutputs
+  createTransaction,
+  createAssetTransaction,
+  createPoDA,
+  assetAllocationSend,
+  assetAllocationBurn,
+  assetAllocationMint,
+  syscoinBurnToAssetAllocation,
+  getAssetsFromTx,
+  getAllocationsFromTx,
+  getAllocationsFromOutputs,
+  getPoDAFromOutputs,
+  getPoDAFromTx,
+  getAssetsFromOutputs,
+  decodeRawTransaction,
+  decodeSyscoinData,
+  getSyscoinTxType
 }

@@ -101,7 +101,7 @@ function deserializeAssetVoutValue (bufferReader) {
   const n = bufferReader.readVarInt()
   const valueSat = readUint(bufferReader)
   const value = utils.decompressAmount(valueSat)
-  return { n: n, value: value }
+  return { n, value }
 }
 
 function deserializeAssetVout (bufferReader) {
@@ -111,7 +111,7 @@ function deserializeAssetVout (bufferReader) {
   for (let j = 0; j < numOutputs; j++) {
     values.push(deserializeAssetVoutValue(bufferReader))
   }
-  return { assetGuid: assetGuid.toString(10), values: values }
+  return { assetGuid: assetGuid.toString(10), values }
 }
 
 function deserializeAssetAllocations (buffer, bufferReaderIn, extractMemo) {
@@ -220,15 +220,15 @@ function deserializePoDA (buffer) {
 }
 
 module.exports = {
-  serializeAssetAllocations: serializeAssetAllocations,
-  serializeMintSyscoin: serializeMintSyscoin,
-  deserializeMintSyscoin: deserializeMintSyscoin,
-  serializeAllocationBurn: serializeAllocationBurn,
-  deserializeAllocationBurn: deserializeAllocationBurn,
-  deserializeAssetAllocations: deserializeAssetAllocations,
-  serializePoDA: serializePoDA,
-  deserializePoDA: deserializePoDA,
-  writeUInt64LE: writeUInt64LE,
-  readUInt64LE: readUInt64LE
+  serializeAssetAllocations,
+  serializeMintSyscoin,
+  deserializeMintSyscoin,
+  serializeAllocationBurn,
+  deserializeAllocationBurn,
+  deserializeAssetAllocations,
+  serializePoDA,
+  deserializePoDA,
+  writeUInt64LE,
+  readUInt64LE
 
 }
