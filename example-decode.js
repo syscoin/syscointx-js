@@ -63,9 +63,6 @@ try {
   if (decoded.syscoin.burn) {
     console.log('Burn Data:')
     console.log('  Ethereum Address:', decoded.syscoin.burn.ethaddress)
-    if (decoded.syscoin.burn.memo) {
-      console.log('  Memo:', decoded.syscoin.burn.memo)
-    }
   }
 
   if (decoded.syscoin.mint) {

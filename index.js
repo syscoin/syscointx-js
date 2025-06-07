@@ -787,8 +787,7 @@ function decodeBurnData (tx) {
             valueFormatted: (value.value.toNumber() / 100000000).toFixed(8)
           }))
         }))
-        : null,
-      memo: burnData.memo ? burnData.memo.toString('hex') : null
+        : null
     }
   } catch (error) {
     console.log('Error decoding burn data:', error)
