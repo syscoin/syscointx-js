@@ -13,13 +13,19 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   if (txOpts.memo) {
     if (!txOpts.memoHeader) {
       console.log('No Memo header defined')
-      return null
+      return {
+        error: 'INVALID_MEMO',
+        message: 'No Memo header defined'
+      }
     }
     totalMemoLen = txOpts.memo.length + txOpts.memoHeader.length
   }
   if (totalMemoLen > 80) {
     console.log('Memo too big! Max is 80 bytes, found: ' + totalMemoLen)
-    return null
+    return {
+      error: 'INVALID_MEMO',
+      message: 'Memo too big! Max is 80 bytes, found: ' + totalMemoLen
+    }
   }
   if (txOpts.memo) {
     dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
@@ -29,7 +35,10 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   if (txOpts.blobHash) {
     if (!txOpts.blobData) {
       console.log('blobHash provided but no blobData in txOptions')
-      return null
+      return {
+        error: 'INVALID_BLOB',
+        message: 'blobHash provided but no blobData in txOptions'
+      }
     }
     totalBlobLen = txOpts.blobData.length
     txVersion = utils.SYSCOIN_TX_VERSION_NEVM_DATA
@@ -39,14 +48,16 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   if (!res.inputs && !res.outputs) {
     if (txOpts.blobHash) {
       console.log('createTransaction: inputs or outputs are empty after coinSelect creating blob')
-      return null
+      // Return the complete error object from coinselect
+      return res
     }
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
     res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null)
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
-      return null
+      // Return the complete error object from coinselect
+      return res
     }
     if (assetAllocations.length > 0) {
       txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
@@ -102,7 +113,19 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
       output.address = changeAddress
     }
   })
-  return { txVersion, inputs, outputs }
+
+  // Get the actual fee and size
+  const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
+
+  return {
+    success: true,
+    txVersion,
+    inputs,
+    outputs,
+    fee: res.fee,
+    feeRate,
+    size: bytesAccum
+  }
 }
 // update all allocations at some index or higher
 function updateAllocationIndexes (assetAllocations, index) {
@@ -278,12 +301,14 @@ function getAssetsFromTx (tx) {
 }
 
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  let { inputs, outputs, assetAllocations } = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion)
+  const assetSelectResult = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion)
+  let { inputs, outputs, assetAllocations } = assetSelectResult
 
   // .inputs and .outputs will be undefined if no solution was found
   if (!inputs || !outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAsset')
-    return null
+    // Return the complete error object from coinselect
+    return assetSelectResult
   }
 
   let burnAllocationValue
@@ -291,12 +316,18 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     // ensure only 1 to 2 outputs (2 if change was required)
     if (outputs.length > 2 && outputs.length < 1) {
       console.log('Assetallocationburn: expect output of length 1 got: ' + outputs.length)
-      return null
+      return {
+        error: 'INVALID_OUTPUT_COUNT',
+        message: 'Assetallocationburn: expect output of length 1 got: ' + outputs.length
+      }
     }
     const assetAllocation = assetAllocations.find(voutAsset => voutAsset.assetGuid === outputs[0].assetInfo.assetGuid)
     if (assetAllocation === undefined) {
       console.log('Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid)
-      return null
+      return {
+        error: 'INVALID_ASSET_ALLOCATION',
+        message: 'Assetallocationburn: assetAllocations map does not have key: ' + outputs[0].assetInfo.assetGuid
+      }
     }
     burnAllocationValue = new BN(assetAllocation.values[0].value)
     // remove first output if there is more than one
@@ -330,7 +361,8 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   const res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets, assetMap)
   if (!res.inputs || !res.outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
-    return null
+    // Return the complete error object from coinselect
+    return res
   }
   inputs = res.inputs
   outputs = res.outputs
@@ -398,7 +430,19 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       output.address = sysChangeAddress
     }
   })
-  return { txVersion, inputs, outputs }
+
+  // Get the actual fee and size
+  const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
+
+  return {
+    success: true,
+    txVersion,
+    inputs,
+    outputs,
+    fee: res.fee,
+    feeRate,
+    size: bytesAccum
+  }
 }
 
 function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
@@ -408,16 +452,25 @@ function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate
   if (txOpts.memo) {
     if (!Buffer.isBuffer(txOpts.memo)) {
       console.log('Memo must be Buffer object')
-      return
+      return {
+        error: 'INVALID_MEMO',
+        message: 'Memo must be Buffer object'
+      }
     }
     const totalLen = txOpts.memo.length + txOpts.memoHeader.length
     if (!txOpts.memoHeader) {
       console.log('No Memo header defined')
-      return
+      return {
+        error: 'INVALID_MEMO',
+        message: 'No Memo header defined'
+      }
     }
     if (totalLen > 80) {
       console.log('Memo too big! Max is 80 bytes, found: ' + totalLen)
-      return
+      return {
+        error: 'INVALID_MEMO',
+        message: 'Memo too big! Max is 80 bytes, found: ' + totalLen
+      }
     }
     dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
   }
@@ -441,23 +494,35 @@ function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
   const dataAmount = ext.BN_ZERO
   if (assetOpts.txparentnodes.length > utils.USHRT_MAX()) {
     console.log('tx parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', assetOpts.txparentnodes.length)
-    return
+    return {
+      error: 'INVALID_PARENT_NODES',
+      message: 'tx parent nodes exceeds maximum allowable size of: ' + utils.USHRT_MAX() + '. Found size: ' + assetOpts.txparentnodes.length
+    }
   }
   if (assetOpts.receiptparentnodes.length > utils.USHRT_MAX()) {
     console.log('receipt parent nodes exceeds maximum allowable size of: ', utils.USHRT_MAX(), '. Found size: ', assetOpts.receiptparentnodes.length)
-    return
+    return {
+      error: 'INVALID_PARENT_NODES',
+      message: 'receipt parent nodes exceeds maximum allowable size of: ' + utils.USHRT_MAX() + '. Found size: ' + assetOpts.receiptparentnodes.length
+    }
   }
   // find byte offset of tx data in the parent nodes
   assetOpts.txpos = assetOpts.txparentnodes.indexOf(assetOpts.txvalue)
   if (assetOpts.txpos === -1) {
     console.log('Could not find tx value in tx parent nodes')
-    return
+    return {
+      error: 'INVALID_TX_VALUE',
+      message: 'Could not find tx value in tx parent nodes'
+    }
   }
   // find byte offset of receipt data in the parent nodes
   assetOpts.receiptpos = assetOpts.receiptparentnodes.indexOf(assetOpts.receiptvalue)
   if (assetOpts.receiptpos === -1) {
     console.log('Could not find receipt value in receipt parent nodes')
-    return
+    return {
+      error: 'INVALID_RECEIPT_VALUE',
+      message: 'Could not find receipt value in receipt parent nodes'
+    }
   }
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
   return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
@@ -476,7 +541,10 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
 function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
   if (!txOpts.blobData || !txOpts.blobHash) {
     console.log('Could not find blob txOpt fields, cannot create PoDA transaction')
-    return null
+    return {
+      error: 'INVALID_BLOB',
+      message: 'Could not find blob txOpt fields, cannot create PoDA transaction'
+    }
   }
   return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate)
 }

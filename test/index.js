@@ -174,6 +174,8 @@ fixtures.forEach(function (f) {
     if (f.version === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.syscoinBurnToAssetAllocation(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -190,6 +192,8 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationMint(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -207,6 +211,8 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationBurn(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -224,6 +230,8 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationSend(txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       if (txOpts.memo) {
@@ -246,6 +254,8 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_NEVM_DATA) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts)
       const res = syscointx.createPoDA(txOpts, utxos, f.sysChangeAddress, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
       res.outputs.forEach(output => {
@@ -260,6 +270,8 @@ fixtures.forEach(function (f) {
     } else if (f.version === 2) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts)
       const res = syscointx.createTransaction(txOpts, utxos, f.sysChangeAddress, f.outputs, f.feeRate)
+      t.ok(res.success || res.error, 'Transaction completed')
+      t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.expected.version)
       if (txOpts.memo) {

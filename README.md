@@ -56,7 +56,17 @@ let targets = [
   }
 ]
 
-// ...
+// Subtract fee from output example:
+// The fee will be deducted from outputs with subtractFeeFrom in order
+let targetsWithFeeSubtraction = [
+  {
+    address: '1EHNa6Q4Jz2uvNExL497mE43ikXhwF6kZm',
+    value: 10000,
+    subtractFeeFrom: true // Fee will be subtracted from this output first
+  }
+]
+
+// Using coinselectsyscoin directly:
 let { inputs, outputs, fee } = coinSelect(utxos, targets, feeRate)
 
 // the accumulated fee is always returned for analysis
@@ -89,6 +99,43 @@ outputs.forEach(output => {
     value: output.value,
   })
 })
+
+// Example using syscointx-js with subtractFee:
+const syscointx = require('syscointx-js')
+const BN = require('bn.js')
+
+// Create transaction that subtracts fee from output
+const txOpts = { rbf: true }
+const utxos = { utxos: [...] } // Your UTXOs
+
+// Single output with subtractFeeFrom
+const outputsArr = [
+  {
+    address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+    value: new BN(100000000), // 1 SYS
+    subtractFeeFrom: true // Fee will be deducted from this output
+  }
+]
+
+// Multiple outputs with subtractFeeFrom - fee deducted in order
+const multipleOutputs = [
+  {
+    address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+    value: new BN(50000000), // 0.5 SYS
+    subtractFeeFrom: true // Fee deducted from here first
+  },
+  {
+    address: 'bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l',
+    value: new BN(50000000), // 0.5 SYS
+    subtractFeeFrom: true // Only touched if first output can't cover full fee
+  }
+]
+
+const changeAddress = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
+const feeRate = new BN(10)
+
+const result = syscointx.createTransaction(txOpts, utxos, changeAddress, outputsArr, feeRate)
+// Fee is subtracted sequentially from outputs with subtractFeeFrom
 ```
 
 
