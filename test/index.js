@@ -54,9 +54,10 @@ Param script: Required. OP_RETURN script output
 Param memoHeader: Required. Prefix header to look for, application specific
 */
 function getMemoFromScript (script, memoHeader) {
-  const pos = script.indexOf(memoHeader)
+  const buf = Buffer.isBuffer(script) ? script : Buffer.from(script)
+  const pos = buf.indexOf(memoHeader)
   if (pos >= 0) {
-    return script.slice(pos + memoHeader.length)
+    return buf.slice(pos + memoHeader.length)
   }
   return null
 }
@@ -73,7 +74,7 @@ function getMemoFromOpReturn (outputs, memoHeader) {
       // find opreturn
       const chunks = bitcoin.script.decompile(output.script)
       if (chunks[0] === bitcoinops.OP_RETURN) {
-        return getMemoFromScript(chunks[1], memoHeader)
+        return getMemoFromScript(Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1]), memoHeader)
       }
     }
   }
@@ -183,8 +184,10 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
-            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+            t.same(scriptBuf, f.expected.script)
+            const chunkBuf = Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1])
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunkBuf)
             t.same(assetAllocations, f.expected.asset.allocation)
           }
         }
@@ -201,8 +204,10 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
-            const asset = syscoinBufferUtils.deserializeMintSyscoin(chunks[1])
+            const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+            t.same(scriptBuf, f.expected.script)
+            const chunkBuf = Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1])
+            const asset = syscoinBufferUtils.deserializeMintSyscoin(chunkBuf)
             t.same(asset, f.expected.asset)
             t.same(asset.allocation, f.expected.asset.allocation)
           }
@@ -220,8 +225,10 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
-            const asset = syscoinBufferUtils.deserializeAllocationBurn(chunks[1])
+            const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+            t.same(scriptBuf, f.expected.script)
+            const chunkBuf = Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1])
+            const asset = syscoinBufferUtils.deserializeAllocationBurn(chunkBuf)
             t.same(asset, f.expected.asset)
             t.same(asset.allocation, f.expected.asset.allocation)
           }
@@ -242,10 +249,12 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
-            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+            const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+            t.same(scriptBuf, f.expected.script)
+            const chunkBuf = Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1])
+            const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunkBuf)
             if (f.expected.memo) {
-              t.same(getMemoFromScript(chunks[1], memoHeader), f.expected.memo)
+              t.same(getMemoFromScript(chunkBuf, memoHeader), f.expected.memo)
             }
             t.same(assetAllocations, f.expected.asset.allocation)
           }
@@ -263,7 +272,8 @@ fixtures.forEach(function (f) {
           // find opreturn
           const chunks = bitcoin.script.decompile(output.script)
           if (chunks[0] === bitcoinops.OP_RETURN) {
-            t.same(output.script, f.expected.script)
+            const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+            t.same(scriptBuf, f.expected.script)
           }
         }
       })
@@ -283,8 +293,10 @@ fixtures.forEach(function (f) {
             // find opreturn
             const chunks = bitcoin.script.decompile(output.script)
             if (chunks[0] === bitcoinops.OP_RETURN) {
-              t.same(output.script, f.expected.script)
-              const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunks[1])
+              const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script)
+              t.same(scriptBuf, f.expected.script)
+              const chunkBuf = Buffer.isBuffer(chunks[1]) ? chunks[1] : Buffer.from(chunks[1])
+              const assetAllocations = syscoinBufferUtils.deserializeAssetAllocations(chunkBuf)
               t.same(assetAllocations, f.expected.asset.allocation)
             }
           }
@@ -297,10 +309,10 @@ fixtures.forEach(function (f) {
 })
 
 tape.test('test decode raw transaction - Bitcoin transaction', (assert) => {
-  // Create a simple Bitcoin transaction for testing
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.setVersion(2)
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
+  // Create a simple Bitcoin transaction for testing (v7 Transaction)
+  const tx = new bitcoin.Transaction()
+  tx.version = 2
+  tx.addInput(Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse(), 0)
 
   // Create P2PKH outputs manually
   const p2pkhScript1 = bitcoin.script.compile([
@@ -318,10 +330,8 @@ tape.test('test decode raw transaction - Bitcoin transaction', (assert) => {
     bitcoin.opcodes.OP_CHECKSIG
   ])
 
-  txBuilder.addOutput(p2pkhScript1, 100000000)
-  txBuilder.addOutput(p2pkhScript2, 50000000)
-
-  const tx = txBuilder.buildIncomplete()
+  tx.addOutput(p2pkhScript1, BigInt(100000000))
+  tx.addOutput(p2pkhScript2, BigInt(50000000))
   const decoded = syscointx.decodeRawTransaction(tx, syscoinNetworks.mainnet)
 
   assert.equal(decoded.version, 2)
@@ -355,11 +365,13 @@ tape.test('test decode raw transaction - Asset Allocation Send', (assert) => {
 
 tape.test('test decode raw transaction - Allocation Burn to Ethereum', (assert) => {
   // Create a mock allocation burn transaction
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.setVersion(141) // SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
+  const txBurn = new bitcoin.Transaction()
+  txBurn.version = 141 // SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
+  const dummyHash = Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse()
+  txBurn.addInput(dummyHash, 0)
 
   // Add input
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
+  // addInput done above
 
   // Create mock allocation data
   const assetAllocations = [{
@@ -379,9 +391,9 @@ tape.test('test decode raw transaction - Allocation Burn to Ethereum', (assert) 
   // Combine allocation and burn data
   const combinedBuffer = Buffer.concat([assetAllocationsBuffer, burnBuffer])
   const dataScript = bitcoin.payments.embed({ data: [combinedBuffer] }).output
-  txBuilder.addOutput(dataScript, 0)
+  txBurn.addOutput(dataScript, BigInt(0))
 
-  const tx = txBuilder.buildIncomplete()
+  const tx = txBurn
   const decoded = syscointx.decodeRawTransaction(tx, syscoinNetworks.mainnet)
 
   assert.equal(decoded.version, 141)
@@ -393,11 +405,12 @@ tape.test('test decode raw transaction - Allocation Burn to Ethereum', (assert) 
 
 tape.test('test decode raw transaction - PoDA Transaction', (assert) => {
   // Create a mock PoDA transaction
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.setVersion(137) // SYSCOIN_TX_VERSION_NEVM_DATA
+  const txPoda = new bitcoin.Transaction()
+  txPoda.version = 137 // SYSCOIN_TX_VERSION_NEVM_DATA
 
   // Add input
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
+  const dummyHash2 = Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse()
+  txPoda.addInput(dummyHash2, 0)
 
   // Add output with PoDA data
   const podaData = {
@@ -405,9 +418,9 @@ tape.test('test decode raw transaction - PoDA Transaction', (assert) => {
   }
   const podaBuffer = syscoinBufferUtils.serializePoDA(podaData)
   const dataScript = bitcoin.payments.embed({ data: [podaBuffer] }).output
-  txBuilder.addOutput(dataScript, 0)
+  txPoda.addOutput(dataScript, BigInt(0))
 
-  const tx = txBuilder.buildIncomplete()
+  const tx = txPoda
   const decoded = syscointx.decodeRawTransaction(tx, syscoinNetworks.mainnet)
 
   assert.equal(decoded.version, 137)
@@ -432,11 +445,12 @@ tape.test('test decode raw transaction - Multisig Transaction', (assert) => {
     bitcoin.opcodes.OP_CHECKMULTISIG
   ])
 
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
-  txBuilder.addOutput(multisigScript, 100000000)
+  const txMulti = new bitcoin.Transaction()
+  const dummyHash3 = Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse()
+  txMulti.addInput(dummyHash3, 0)
+  txMulti.addOutput(multisigScript, BigInt(100000000))
 
-  const tx = txBuilder.buildIncomplete()
+  const tx = txMulti
   const decoded = syscointx.decodeRawTransaction(tx, syscoinNetworks.mainnet)
 
   assert.equal(decoded.vout[0].scriptPubKey.type, 'multisig')
@@ -446,18 +460,19 @@ tape.test('test decode raw transaction - Multisig Transaction', (assert) => {
 })
 
 tape.test('test decode raw transaction - P2WPKH Transaction', (assert) => {
-  // Create a P2WPKH transaction
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
+  // Create a P2WPKH transaction using raw Transaction
+  const txWpkh = new bitcoin.Transaction()
+  const dummyHash4 = Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse()
+  txWpkh.addInput(dummyHash4, 0)
 
   // P2WPKH output (witness v0 keyhash)
   const witnessScript = bitcoin.script.compile([
     bitcoin.opcodes.OP_0,
     Buffer.from('1234567890abcdef1234567890abcdef12345678', 'hex')
   ])
-  txBuilder.addOutput(witnessScript, 50000000)
+  txWpkh.addOutput(witnessScript, BigInt(50000000))
 
-  const tx = txBuilder.buildIncomplete()
+  const tx = txWpkh
   const decoded = syscointx.decodeRawTransaction(tx, syscoinNetworks.mainnet)
 
   assert.equal(decoded.vout[0].scriptPubKey.type, 'witness_v0_keyhash')
@@ -480,8 +495,9 @@ tape.test('test decode syscoin transaction types', (assert) => {
 })
 tape.test('test decode transaction with witness data', (assert) => {
   // Create a transaction with witness data
-  const txBuilder = new bitcoin.TransactionBuilder(syscoinNetworks.mainnet)
-  txBuilder.addInput('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 0)
+  const txWit = new bitcoin.Transaction()
+  const dummyHash5 = Buffer.from('a04144c6561f9f851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2', 'hex').reverse()
+  txWit.addInput(dummyHash5, 0)
 
   // Create P2PKH output manually
   const p2pkhScript = bitcoin.script.compile([
@@ -491,9 +507,9 @@ tape.test('test decode transaction with witness data', (assert) => {
     bitcoin.opcodes.OP_EQUALVERIFY,
     bitcoin.opcodes.OP_CHECKSIG
   ])
-  txBuilder.addOutput(p2pkhScript, 50000000)
+  txWit.addOutput(p2pkhScript, BigInt(50000000))
 
-  const tx = txBuilder.buildIncomplete()
+  const tx = txWit
 
   // Manually add witness data for testing
   tx.ins[0].witness = [

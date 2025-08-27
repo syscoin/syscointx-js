@@ -227,7 +227,7 @@ function getAllocationsFromOutputs (outputs) {
     return null
   }
 
-  const allocation = syscoinBufferUtils.deserializeAssetAllocations(opReturnScript)
+  const allocation = syscoinBufferUtils.deserializeAssetAllocations(Buffer.isBuffer(opReturnScript) ? opReturnScript : Buffer.from(opReturnScript))
   if (!allocation) {
     return null
   }
@@ -261,7 +261,7 @@ function getPoDAFromOutputs (outputs) {
     return null
   }
 
-  const blob = syscoinBufferUtils.deserializePoDA(opReturnScript)
+  const blob = syscoinBufferUtils.deserializePoDA(Buffer.isBuffer(opReturnScript) ? opReturnScript : Buffer.from(opReturnScript))
   if (!blob) {
     return null
   }
@@ -565,12 +565,13 @@ function decodeRawTransaction (tx, network) {
 
   // Decode inputs
   tx.ins.forEach((input, index) => {
+    const scriptBuf = Buffer.isBuffer(input.script) ? input.script : Buffer.from(input.script || [])
     const vin = {
       txid: Buffer.from(input.hash).reverse().toString('hex'),
       vout: input.index,
       scriptSig: {
-        asm: bitcoin.script.toASM(input.script),
-        hex: input.script.toString('hex')
+        asm: bitcoin.script.toASM(scriptBuf),
+        hex: scriptBuf.toString('hex')
       },
       sequence: input.sequence
     }
@@ -585,15 +586,16 @@ function decodeRawTransaction (tx, network) {
 
   // Decode outputs
   tx.outs.forEach((output, index) => {
+    const scriptBuf = Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script || [])
     const vout = {
-      value: output.value / 100000000, // Convert satoshis to coins
+      value: (typeof output.value === 'bigint' ? Number(output.value) : output.value) / 100000000, // Convert satoshis to coins
       n: index,
       scriptPubKey: {
-        asm: bitcoin.script.toASM(output.script),
-        hex: output.script.toString('hex'),
-        type: getOutputType(output.script),
-        reqSigs: getRequiredSigs(output.script),
-        addresses: getOutputAddresses(output.script, network)
+        asm: bitcoin.script.toASM(scriptBuf),
+        hex: scriptBuf.toString('hex'),
+        type: getOutputType(scriptBuf),
+        reqSigs: getRequiredSigs(scriptBuf),
+        addresses: getOutputAddresses(scriptBuf, network)
       }
     }
     decoded.vout.push(vout)
@@ -651,6 +653,14 @@ function getOutputType (script) {
       return 'witness_v0_scripthash'
     }
 
+    // P2TR (Taproot)
+    if (chunks.length === 2 &&
+        chunks[0] === bitcoinops.OP_1 &&
+        Buffer.isBuffer(chunks[1]) &&
+        chunks[1].length === 32) {
+      return 'witness_v1_taproot'
+    }
+
     // P2PK
     if (chunks.length === 2 &&
         Buffer.isBuffer(chunks[0]) &&
@@ -692,7 +702,7 @@ function getRequiredSigs (script) {
 
     // Standard single sig types
     const type = getOutputType(script)
-    if (['pubkeyhash', 'scripthash', 'witness_v0_keyhash', 'witness_v0_scripthash', 'pubkey'].includes(type)) {
+    if (['pubkeyhash', 'scripthash', 'witness_v0_keyhash', 'witness_v0_scripthash', 'witness_v1_taproot', 'pubkey'].includes(type)) {
       return 1
     }
 
@@ -718,6 +728,8 @@ function getOutputAddresses (script, network) {
       case 'witness_v0_keyhash':
         return [bitcoin.address.fromOutputScript(script, targetNetwork)]
       case 'witness_v0_scripthash':
+        return [bitcoin.address.fromOutputScript(script, targetNetwork)]
+      case 'witness_v1_taproot':
         return [bitcoin.address.fromOutputScript(script, targetNetwork)]
       case 'multisig': {
         const addresses = []
@@ -839,7 +851,8 @@ function decodeBurnData (tx) {
       return null
     }
 
-    const burnData = syscoinBufferUtils.deserializeAllocationBurn(opReturnScript, true)
+    const burnPayload = Buffer.isBuffer(opReturnScript) ? opReturnScript : Buffer.from(opReturnScript)
+    const burnData = syscoinBufferUtils.deserializeAllocationBurn(burnPayload, true)
     if (!burnData) {
       return null
     }
