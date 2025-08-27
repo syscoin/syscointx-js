@@ -892,7 +892,7 @@ function decodeMintData (tx) {
       return null
     }
 
-    const mintData = syscoinBufferUtils.deserializeMintSyscoin(opReturnScript)
+    const mintData = syscoinBufferUtils.deserializeMintSyscoin(Buffer.isBuffer(opReturnScript) ? opReturnScript : Buffer.from(opReturnScript))
     if (!mintData) {
       return null
     }

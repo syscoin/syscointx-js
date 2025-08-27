@@ -75,8 +75,12 @@ class BufferWriter {
   }
 
   writeVarInt (i) {
-    varuint.encode(i, this.buffer, this.offset)
-    this.offset += varuint.encode.bytes
+    // Prefer v2 API that writes directly and returns bytes written
+    const res = varuint.encode(i, this.buffer, this.offset)
+    const bytes = res && typeof res === 'object' && 'bytes' in res
+      ? res.bytes
+      : varuint.encode(i).length
+    this.offset += bytes
   }
 
   writeSlice (slice) {
@@ -138,9 +142,19 @@ class BufferReader {
   }
 
   readVarInt () {
-    const vi = varuint.decode(this.buffer, this.offset)
-    this.offset += varuint.decode.bytes
-    return vi
+    const decoded = varuint.decode(this.buffer, this.offset)
+    let bytes
+    let value
+    if (decoded && typeof decoded === 'object' && 'bytes' in decoded) {
+      bytes = decoded.bytes
+      const raw = 'bigintValue' in decoded ? decoded.bigintValue : ('value' in decoded ? decoded.value : 0)
+      value = Number(raw)
+    } else {
+      value = decoded
+      bytes = varuint.encode(value).length
+    }
+    this.offset += bytes
+    return value
   }
 
   readSlice (n) {
