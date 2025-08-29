@@ -1,7 +1,16 @@
 const BN = require('bn.js')
 const ext = require('./bn-extensions')
 const bitcoin = require('bitcoinjs-lib')
-const secp256k1 = require('secp256k1')
+const { ECPairFactory } = require('ecpair')
+const ecc = require('@bitcoinerlab/secp256k1')
+
+// Initialize ECPair with ecc
+const ECPair = ECPairFactory(ecc)
+
+// Initialize bitcoinjs-lib with ecc
+if (typeof bitcoin.initEccLib === 'function') {
+  bitcoin.initEccLib(ecc)
+}
 const MAX_BIP125_RBF_SEQUENCE = 0xfffffffd
 
 const SYSCOIN_TX_VERSION_NEVM_DATA = 137
@@ -125,9 +134,10 @@ function decompressAmount (x) {
 }
 
 function signHash (WIF, hash, network) {
-  const keyPair = bitcoin.ECPair.fromWIF(WIF, network)
-  const sigObj = secp256k1.sign(hash, keyPair.privateKey)
-  const recId = 27 + sigObj.recovery + (keyPair.compressed ? 4 : 0)
+  const keyPair = ECPair.fromWIF(WIF, network)
+  // signRecoverable returns { signature: Buffer, recoveryId: number }
+  const sigObj = ecc.signRecoverable(hash, keyPair.privateKey)
+  const recId = 27 + sigObj.recoveryId + (keyPair.compressed ? 4 : 0)
 
   const recIdBuffer = Buffer.allocUnsafe(1)
   recIdBuffer.writeInt8(recId)
