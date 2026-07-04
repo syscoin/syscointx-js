@@ -1,6 +1,6 @@
 {
   "name": "syscointx-js",
-  "version": "1.0.124",
+  "version": "1.0.125",
   "description": "A transaction creation library interfacing with coin selection for Syscoin.",
   "keywords": [
     "coinselect",
@@ -44,17 +44,17 @@
     "unit": "tape test/*.js test/*.test.js"
   },
   "devDependencies": {
-    "nyc": "^15.1.0",
+    "nyc": "^18.0.0",
     "standard": "*",
     "tape": "^5.0.1"
   },
   "dependencies": {
-    "bitcoin-ops": "^1.4.1",
-    "bitcoinjs-lib": "^7.0.0-rc.0",
-    "bn.js": "^5.1.3",
-    "coinselectsyscoin": "^1.1.10",
     "@bitcoinerlab/secp256k1": "^1.2.0",
-    "ecpair": "^3.0.0-rc.0",
+    "bitcoin-ops": "^1.4.1",
+    "bitcoinjs-lib": "^7.0.1",
+    "bn.js": "^5.2.4",
+    "coinselectsyscoin": "^1.1.11",
+    "ecpair": "^3.0.1",
     "typeforce": "^1.18.0",
     "varuint-bitcoin": "^2.0.0"
   }
