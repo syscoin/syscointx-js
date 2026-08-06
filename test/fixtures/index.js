@@ -679,10 +679,10 @@ module.exports = [
     expected: {
       rbf: true,
       version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-      numOutputs: 4,
-      script: Buffer.from('6a110288dea1914b01005687cabdbd5b010358', 'hex'),
+      numOutputs: 3,
+      script: Buffer.from('6a110288dea1914b01005687cabdbd5b010258', 'hex'),
       asset: {
-        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000) }] }, { assetGuid: '2305793883', values: [{ n: 3, value: new BN(90000000) }] }]
+        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000) }] }, { assetGuid: '2305793883', values: [{ n: 2, value: new BN(90000000) }] }]
       }
     }
   },
@@ -722,10 +722,10 @@ module.exports = [
     expected: {
       rbf: true,
       version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-      numOutputs: 4,
-      script: Buffer.from('6a0b0188dea1914b0200590358', 'hex'),
+      numOutputs: 3,
+      script: Buffer.from('6a0b0188dea1914b0200590258', 'hex'),
       asset: {
-        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000000) }, { n: 3, value: new BN(90000000) }] }]
+        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000000) }, { n: 2, value: new BN(90000000) }] }]
       }
     }
   },
