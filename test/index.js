@@ -179,6 +179,11 @@ fixtures.forEach(function (f) {
       t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
       t.same(res.txVersion, f.version)
+      res.outputs
+        .filter(output => output.changeIndex !== undefined)
+        .forEach(output => {
+          t.notOk(output.assetInfo, 'native SYS change remains asset-free')
+        })
       res.outputs.forEach(output => {
         if (output.script) {
           // find opreturn

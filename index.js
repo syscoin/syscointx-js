@@ -374,8 +374,18 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       outputs[0].value = burnAllocationValue
     }
   }
-  // optimizeOutputs reorganizes outputs and we need to ensure we don't do this with burntosyscoin since its assumed first output has the sys value we need to create
-  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+  // Keep SYS change separate when converting SYS to SYSX. Canonical bridge
+  // mints cannot consume asset-bearing inputs, so attaching the SYSX
+  // allocation to the native change output can strand all of a wallet's SYS
+  // for a later mint transaction.
+  const keepSysChangeSeparate =
+    txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
+  // optimizeOutputs reorganizes outputs and we need to ensure we don't do this
+  // with burn-to-Syscoin since its first output has the SYS value to create.
+  if (
+    txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN &&
+    !keepSysChangeSeparate
+  ) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
     optimizeOutputs(outputs, assetAllocations)
   }
