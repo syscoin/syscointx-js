@@ -330,14 +330,23 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       }
     }
     burnAllocationValue = new BN(assetAllocation.values[0].value)
-    // remove first output if there is more than one
-    // it will be size of 1 if you burn the exact right amount you own (ie utxo has 5 sysx and you burn 5 sysx)
-    // it will be size of 2 if you burn less than what you own (ie utxo has 5 sysx and you burn 4 sysx, 1 sysx should be change)
+    // Remove the requested asset output when an allocation change output is
+    // present. When burning the exact input amount there is no asset change,
+    // but output zero is still part of the transaction layout. Clear the
+    // coin-selection-only asset metadata so PSBT consumers do not present it
+    // as an allocated asset output; the serialized allocation points to the
+    // OP_RETURN burn output below.
     if (outputs.length > 1) {
       outputs.splice(0, 1)
       // we removed the first index via slice above, so all N's at index 1 or above should be reduced by 1
       updateAllocationIndexes(assetAllocations, 0)
     } else {
+      const exactBurnAssetGuid = outputs[0].assetInfo.assetGuid
+      const exactBurnAsset = assetMap.get(exactBurnAssetGuid)
+      if (!outputs[0].address && exactBurnAsset && exactBurnAsset.changeAddress) {
+        outputs[0].address = exactBurnAsset.changeAddress
+      }
+      delete outputs[0].assetInfo
       outputs[0].assetChangeIndex = undefined
     }
     // point first allocation to next output (burn output)
@@ -374,18 +383,8 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       outputs[0].value = burnAllocationValue
     }
   }
-  // Keep SYS change separate when converting SYS to SYSX. Canonical bridge
-  // mints cannot consume asset-bearing inputs, so attaching the SYSX
-  // allocation to the native change output can strand all of a wallet's SYS
-  // for a later mint transaction.
-  const keepSysChangeSeparate =
-    txVersion === utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
-  // optimizeOutputs reorganizes outputs and we need to ensure we don't do this
-  // with burn-to-Syscoin since its first output has the SYS value to create.
-  if (
-    txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN &&
-    !keepSysChangeSeparate
-  ) {
+  // optimizeOutputs reorganizes outputs and we need to ensure we don't do this with burntosyscoin since its assumed first output has the sys value we need to create
+  if (txVersion !== utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
     // re-use syscoin change outputs for allocation change outputs where we can, this will possible remove one output and save fees
     optimizeOutputs(outputs, assetAllocations)
   }
