@@ -6,15 +6,27 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function outputScript (output, changeAddress) {
-  if (output.script) return Buffer.from(output.script)
-  const address = output.address || changeAddress
+function addressScript (address) {
   for (const network of [...Object.values(utils.syscoinNetworks), ...Object.values(utils.bitcoinNetworks)]) {
     try {
       return Buffer.from(bitcoin.address.toOutputScript(address, network))
     } catch (_) {}
   }
   throw new Error('Unsupported output address or script')
+}
+
+function outputScript (output, changeAddress) {
+  if (output.script) {
+    const script = Buffer.from(output.script)
+    // OP_RETURN outputs conventionally carry address metadata, not a second
+    // spending destination. Spendable scripts must agree with any address.
+    if (script[0] !== bitcoinops.OP_RETURN && output.address &&
+        !script.equals(addressScript(output.address))) {
+      throw new Error('Output address does not match its spending script')
+    }
+    return script
+  }
+  return addressScript(output.address || changeAddress)
 }
 
 function dustError (index, value, minimum) {
@@ -207,7 +219,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   outputs.forEach(output => {
     // watch out, outputs may have been added that you need to provide
     // an output address/script for
-    if (!output.address) {
+    if (!output.address && (!output.script || Buffer.from(output.script)[0] === bitcoinops.OP_RETURN)) {
       output.address = changeAddress
     }
   })

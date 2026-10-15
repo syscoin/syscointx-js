@@ -141,13 +141,33 @@ test('caller scriptPubKey cannot lower the floor of the serialized address', () 
   assertFinal(result)
   assert.deepEqual(result.outputs[0].scriptPubKey, Buffer.from(destinations[1][1].output))
 })
-test('native raw serialized script wins over contradictory address and metadata', () => {
-  const output = { address: owner, script: Buffer.from(destinations[1][1].output), scriptPubKey: Buffer.from(destinations[0][1].output), value: new BN(545) }
-  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'DUST_OUTPUT')
+test('conflicting native address and raw spending script are rejected', () => {
+  const output = { address: destinations[1][1].address, script: Buffer.from(destinations[0][1].output), value: new BN(300) }
+  const psbt = new bitcoin.Psbt({ network })
+  psbt.addOutput({ address: output.address, script: output.script, value: BigInt(300) })
+  assert.deepEqual(Buffer.from(psbt.txOutputs[0].script), Buffer.from(destinations[1][1].output), 'a consumer passing both fields can serialize the address instead')
+  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
   output.value = new BN(546)
+  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
+})
+test('script-only native output does not acquire a conflicting change address', () => {
+  const output = { script: Buffer.from(destinations[1][1].output), value: new BN(546) }
   const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
   assertFinal(result)
+  assert.equal(result.outputs[0].address, undefined)
   assert.deepEqual(result.outputs[0].script, Buffer.from(destinations[1][1].output))
+  const psbt = new bitcoin.Psbt({ network })
+  psbt.addOutput({ address: result.outputs[0].address, script: result.outputs[0].script, value: BigInt(546) })
+  assert.deepEqual(Buffer.from(psbt.txOutputs[0].script), Buffer.from(destinations[1][1].output))
+})
+test('matching native address and raw spending script remain consistent', () => {
+  const output = { address: owner, script: Buffer.from(destinations[0][1].output), value: new BN(294) }
+  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  assertFinal(result)
+  assert.equal(result.outputs[0].address, owner)
+  const psbt = new bitcoin.Psbt({ network })
+  psbt.addOutput({ address: result.outputs[0].address, script: result.outputs[0].script, value: BigInt(294) })
+  assert.deepEqual(Buffer.from(psbt.txOutputs[0].script), Buffer.from(destinations[0][1].output))
 })
 test('native dust change is folded into fee, without altering the recipient', () => {
   const result = build(99696)
@@ -198,6 +218,7 @@ test('native memo retains its zero-valued OP_RETURN', () => {
   const data = result.outputs.find(o => o.script)
   assert.equal(data.script[0], 0x6a)
   assert.equal(data.value.toString(), '0')
+  assert.equal(data.address, owner, 'generated data keeps its legacy address metadata')
 })
 test('native PoDA retains its zero-valued data output', () => {
   const result = build(50000, undefined, { tx: { rbf: true, blobHash: Buffer.alloc(32, 1), blobData: Buffer.alloc(64, 2) } })
@@ -206,6 +227,7 @@ test('native PoDA retains its zero-valued data output', () => {
   const data = result.outputs.find(o => o.script)
   assert.equal(data.script[0], 0x6a)
   assert.equal(data.value.toString(), '0')
+  assert.equal(data.address, owner, 'generated data keeps its legacy address metadata')
 })
 test('an unknown output address fails closed', () => {
   assert.equal(build(50000, { address: 'not-an-address' }).error, 'INVALID_OUTPUT_SCRIPT')
