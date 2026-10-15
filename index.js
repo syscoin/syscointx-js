@@ -6,7 +6,51 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
+function nativeOutputScript (output, changeAddress) {
+  if (output.script) return Buffer.from(output.script)
+  const address = output.address || changeAddress
+  for (const network of [...Object.values(utils.syscoinNetworks), ...Object.values(utils.bitcoinNetworks)]) {
+    try {
+      return Buffer.from(bitcoin.address.toOutputScript(address, network))
+    } catch (_) {}
+  }
+  throw new Error('Unsupported native output address or script')
+}
+
+// Core's default dust relay policy (3000 sat/kvB), not the transaction fee rate.
+// Asset carrier construction keeps its existing policy until separately migrated.
+function nativeDustThreshold (script) {
+  if (script[0] === bitcoinops.OP_RETURN || script.length > 10000) return new BN(0)
+  const witness = script.length >= 4 && script.length <= 42 &&
+    (script[0] === 0 || (script[0] >= bitcoinops.OP_1 && script[0] <= bitcoinops.OP_16)) &&
+    script[1] >= 2 && script[1] <= 40 && script[1] + 2 === script.length
+  const compactLength = script.length < 253 ? 1 : 3
+  return new BN((8 + compactLength + script.length + (witness ? 67 : 148)) * 3)
+}
+
+function dustError (index, value, minimum) {
+  return {
+    error: 'DUST_OUTPUT',
+    message: 'Native output is below the default relay dust threshold; increase the amount or reduce the fee for MAX',
+    details: { outputIndex: index, value, minimum }
+  }
+}
+
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
+  let requested
+  const dustPolicy = output => output.assetInfo
+    ? coinSelect.utils.dustThreshold(output, feeRate)
+    : nativeDustThreshold(nativeOutputScript(output, changeAddress))
+  try {
+    requested = outputsArr.map((output, index) => {
+      const script = nativeOutputScript(output, changeAddress)
+      const minimum = nativeDustThreshold(script)
+      if (!output.subtractFeeFrom && output.value.lt(minimum)) throw dustError(index, output.value, minimum)
+      return { script, value: output.value.clone(), subtractFeeFrom: output.subtractFeeFrom }
+    })
+  } catch (error) {
+    return error.error ? error : { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
   let dataBuffer = null
   let totalMemoLen = 0
   let totalBlobLen = 0
@@ -44,8 +88,15 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     txVersion = utils.SYSCOIN_TX_VERSION_NEVM_DATA
     dataBuffer = syscoinBufferUtils.serializePoDA({ blobHash: txOpts.blobHash })
   }
-  let res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, txVersion, totalMemoLen, totalBlobLen)
+  let res
+  try {
+    res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, txVersion, totalMemoLen, totalBlobLen, dustPolicy)
+  } catch (error) {
+    return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
   if (!res.inputs && !res.outputs) {
+    // A relay-policy failure is not a request to consume additional asset UTXOs.
+    if (res.error === 'DUST_OUTPUT' || res.error === 'SUBTRACT_FEE_FAILED') return res
     if (txOpts.blobHash) {
       console.log('createTransaction: inputs or outputs are empty after coinSelect creating blob')
       // Return the complete error object from coinselect
@@ -53,7 +104,11 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     }
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
-    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null)
+    try {
+      res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null, undefined, dustPolicy)
+    } catch (error) {
+      return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+    }
     if (!res.inputs || !res.outputs) {
       console.log('createTransaction: inputs or outputs are empty after coinSelectAssetGas')
       // Return the complete error object from coinselect
@@ -88,9 +143,39 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     res.outputs.push(dataOutput)
   }
   const inputs = res.inputs
-  const outputs = res.outputs
+  let outputs = res.outputs
 
   optimizeFees(txVersion, inputs, outputs, feeRate)
+  try {
+    // A selector must never drop/reorder an explicit recipient, including MAX.
+    for (let i = 0; i < requested.length; i++) {
+      const expected = requested[i]
+      const actual = outputs[i]
+      if (!actual || !expected.script.equals(nativeOutputScript(actual, changeAddress)) ||
+          (expected.subtractFeeFrom ? actual.value.gt(expected.value) : !actual.value.eq(expected.value))) {
+        return { error: 'INVALID_OUTPUT', message: 'Coin selection changed an explicit recipient' }
+      }
+    }
+    const keep = []
+    for (let i = 0; i < outputs.length; i++) {
+      const output = outputs[i]
+      if (!output.assetInfo) {
+        const minimum = dustPolicy(output)
+        if (output.value.lt(minimum)) {
+          // Never remove an asset carrier or shift serialized allocation indexes.
+          if (i >= requested.length && output.changeIndex !== undefined && !utils.isAssetAllocationTx(txVersion)) continue
+          return dustError(i, output.value, minimum)
+        }
+      }
+      keep.push(output)
+    }
+    outputs = keep
+    // createTransaction's native and asset-funded sends are fully input-funded.
+    // Mint/burn accounting belongs to createAssetTransaction and is unchanged.
+    res.fee = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  } catch (error) {
+    return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
   if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND) {
     // ensure ZDAG is only enable for transactions <= 1100 bytes
     const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
