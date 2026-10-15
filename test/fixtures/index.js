@@ -396,6 +396,7 @@ module.exports = [
       ['1635229536', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(1) }] }]
     ]),
     expected: {
+      error: 'DUST_OUTPUT',
       rbf: true,
       numOutputs: 3,
       script: Buffer.from('6a1001858addbd6002010100a0c2c3b27700', 'hex'),
@@ -634,7 +635,8 @@ module.exports = [
     expected: {
       rbf: true,
       version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-      numOutputs: 2,
+      // The fixed relay floor retains native change instead of overpaying it.
+      numOutputs: 3,
       script: Buffer.from('6a090188dea1914b010007', 'hex'),
       asset: {
         allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(1000000) }] }]
@@ -722,10 +724,11 @@ module.exports = [
     expected: {
       rbf: true,
       version: utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION,
-      numOutputs: 3,
-      script: Buffer.from('6a0b0188dea1914b0200590258', 'hex'),
+      // Native and SPT change have different scripts and cannot share one output.
+      numOutputs: 4,
+      script: Buffer.from('6a0b0188dea1914b0200590358', 'hex'),
       asset: {
-        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000000) }, { n: 2, value: new BN(90000000) }] }]
+        allocation: [{ assetGuid: '2615707979', values: [{ n: 0, value: new BN(900000000) }, { n: 3, value: new BN(90000000) }] }]
       }
     }
   },

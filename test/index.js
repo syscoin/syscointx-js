@@ -216,6 +216,13 @@ fixtures.forEach(function (f) {
     } else if (f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM || f.version === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
       utxos = sanitizeBlockbookUTXOs(utxos, syscoinNetworks.mainnet, txOpts, f.assetMap)
       const res = syscointx.assetAllocationBurn(f.assetOpts, txOpts, utxos, f.assetMap, f.sysChangeAddress, f.feeRate)
+      if (f.expected.error) {
+        t.equal(res.error, f.expected.error, 'spendable native payout below relay dust is refused')
+        t.notOk(res.success, 'does not return a transaction containing a dust payout')
+        t.notOk(res.outputs, 'does not expose invalid outputs as a completed transaction')
+        t.end()
+        return
+      }
       t.ok(res.success || res.error, 'Transaction completed')
       t.ok(res.fee !== undefined || res.error, 'Fee is returned or error occurred')
       t.same(res.outputs.length, f.expected.numOutputs)
