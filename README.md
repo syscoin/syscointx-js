@@ -9,17 +9,18 @@ An unspent transaction output (UTXO) selection module for syscoin.
 
 **WARNING:** Value units are in `satoshi`s, **not** Syscoin.
 
-Native `createTransaction` outputs use the actual script and Core's default
-3000 sat/kvB dust-relay policy, independently of the transaction fee rate. A
-recipient below that threshold is refused, not altered or discarded. Native
-dust change is folded into the actual fee; MAX must retain its recipient.
-Operator-custom relay policies may differ. This does not migrate the existing
-asset-carrier dust policy: asset allocations and their serialized indexes are
-preserved, and asset-bearing change is never removed by native normalization.
+Dust calculation belongs to `coinselectsyscoin`: its default follows Core's
+3000 sat/kvB dust-relay policy, independently of the transaction fee rate.
+This builder supplies resolved recipient/change scripts as data, not a custom
+policy callback, and revalidates final outputs after its own output merging.
+The shared default applies to both native SYS and SPT carrier outputs; asset
+amounts, allocation indexes and OP_RETURN burn/data values are preserved.
+An explicit recipient below the threshold is refused, not altered or discarded.
+Only unallocated native dust change can be folded into the actual fee; MAX must
+retain its recipient. Operator-custom relay policies may differ.
 
-The native policy requires a `coinselectsyscoin` release supporting its optional
-final policy argument; a release must pin that supporting minimum version.
-The normal unit command includes the native dust policy regressions.
+This requires the supporting `coinselectsyscoin` release before adoption.
+The normal unit command includes native and SPT dust policy regressions.
 
 
 ## Algorithms

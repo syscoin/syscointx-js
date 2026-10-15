@@ -5,6 +5,7 @@ const test = (name, body) => tape(name, t => { t.doesNotThrow(body); t.end() })
 const path = require('path')
 const BN = require('bn.js')
 const bitcoin = require('bitcoinjs-lib')
+const bufferUtils = require('../bufferutilsassets')
 const baseline = process.env.DUST_BASELINE_SOURCE && require(path.resolve(process.env.DUST_BASELINE_SOURCE))
 const candidate = process.env.DUST_TEST_BASELINE ? baseline : require('../')
 const key = Buffer.from('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'hex')
@@ -24,18 +25,129 @@ function build (amount, destination = destinations[0][1], options = {}) {
   return candidate.createTransaction(options.tx || { rbf: true }, coins(options.input), owner,
     [{ address: destination.address, value: new BN(amount), ...(options.max ? { subtractFeeFrom: true } : {}), ...(options.type ? { type: options.type } : {}) }], new BN(options.rate || 1))
 }
+// Independent default-Core oracle applied to the script the SDK serializes,
+// not the caller's fee rate/type hint or the selector's own threshold helper.
+function serializedScript (output) {
+  if (output.script) return Buffer.from(output.script)
+  for (const n of [...Object.values(candidate.utils.syscoinNetworks), ...Object.values(candidate.utils.bitcoinNetworks)]) {
+    try { return Buffer.from(bitcoin.address.toOutputScript(output.address, n)) } catch (_) {}
+  }
+  throw new Error('Missing serializable output destination')
+}
+function coreFloor (script) {
+  if (script[0] === 0x6a || script.length > 10000) return new BN(0)
+  const witness = script.length >= 4 && script.length <= 42 &&
+    (script[0] === 0 || (script[0] >= 0x51 && script[0] <= 0x60)) &&
+    script[1] >= 2 && script[1] <= 40 && script[1] + 2 === script.length
+  const compact = script.length < 253 ? 1 : script.length <= 65535 ? 3 : 5
+  return new BN(3 * (8 + compact + script.length + (witness ? 67 : 148)))
+}
+function allocations (result) {
+  const data = result.outputs.find(o => o.script && o.script[0] === 0x6a)
+  return data ? bufferUtils.deserializeAssetAllocations(Buffer.from(bitcoin.script.decompile(data.script)[1])) : []
+}
+function canonicalAllocations (rows) {
+  return rows.map(asset => ({
+    assetGuid: String(asset.assetGuid),
+    values: asset.values.map(value => ({ n: value.n, value: value.value.toString() }))
+  }))
+}
+function allocationStatements (result) {
+  return allocations(result).flatMap(asset => asset.values.map(value => {
+    const output = result.outputs[value.n]
+    assert.ok(output, 'baseline and current allocation indexes resolve to actual outputs')
+    const script = serializedScript(output)
+    return {
+      assetGuid: String(asset.assetGuid),
+      destination: script[0] === 0x6a ? 'OP_RETURN' : script.toString('hex'),
+      value: value.value.toString()
+    }
+  })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+}
+function sum (rows, value = row => row.value) {
+  return rows.reduce((total, row) => total.add(value(row)), new BN(0))
+}
+function units (rows) {
+  const totals = new Map()
+  for (const row of rows) totals.set(row.assetGuid, (totals.get(row.assetGuid) || new BN(0)).add(row.value))
+  return totals
+}
+function assertFinal (result, minted = new Map()) {
+  assert.equal(result.success, true, result.message || result.error)
+  const dataIndex = result.outputs.findIndex(o => o.script && o.script[0] === 0x6a)
+  for (const output of result.outputs) {
+    const script = serializedScript(output)
+    assert.ok(output.value.gte(coreFloor(script)), 'every serialized output meets its actual script floor')
+    if (script[0] !== 0x6a) {
+      assert.ok(Buffer.isBuffer(output.scriptPubKey), 'spendable output retains distinct script metadata')
+      assert.deepEqual(output.scriptPubKey, script, 'metadata matches the actual serialized destination')
+    }
+  }
+  const inputUnits = units(result.inputs.filter(i => i.assetInfo).map(i => i.assetInfo))
+  const committed = allocations(result)
+  const outputUnits = new Map()
+  const burned = new Map()
+  for (const asset of committed) {
+    const indexes = new Set()
+    for (const v of asset.values) {
+      assert.ok(Number.isInteger(v.n) && v.n >= 0 && v.n < result.outputs.length, 'allocation index is in range')
+      assert.ok(!indexes.has(v.n), 'allocation index is unique per asset')
+      indexes.add(v.n)
+      const output = result.outputs[v.n]
+      if (v.n === dataIndex && [138, 141].includes(result.txVersion)) {
+        burned.set(asset.assetGuid, (burned.get(asset.assetGuid) || new BN(0)).add(v.value))
+      } else {
+        assert.ok(output.assetInfo, 'committed spendable allocation retains carrier metadata')
+        assert.equal(output.assetInfo.assetGuid, asset.assetGuid)
+        assert.equal(output.assetInfo.value.toString(), v.value.toString())
+        outputUnits.set(asset.assetGuid, (outputUnits.get(asset.assetGuid) || new BN(0)).add(v.value))
+      }
+    }
+  }
+  if (result.txVersion === 139) {
+    assert.ok(dataIndex >= 0)
+    assert.equal(result.outputs[dataIndex].value.toString(), sum([...minted.values()], v => v).toString(), '139 preserves native burn principal on OP_RETURN')
+  }
+  for (const guid of new Set([...inputUnits.keys(), ...outputUnits.keys(), ...burned.keys(), ...minted.keys()])) {
+    const available = (inputUnits.get(guid) || new BN(0)).add(minted.get(guid) || new BN(0))
+    const assigned = (outputUnits.get(guid) || new BN(0)).add(burned.get(guid) || new BN(0))
+    assert.equal(assigned.toString(), available.toString(), 'asset units are conserved including explicit mint/burn')
+  }
+  const nativeMint = result.txVersion === 138 ? sum([...burned.values()], v => v) : new BN(0)
+  const actualFee = sum(result.inputs).add(nativeMint).sub(sum(result.outputs))
+  assert.ok(actualFee.gte(new BN(0)), 'native principal plus minted SYS covers outputs and fee')
+  assert.equal(result.fee.toString(), actualFee.toString(), 'reported fee equals final input/output accounting')
+}
 for (const [name, destination, minimum] of destinations) {
-  test(`${name}: threshold minus one rejected, equality retained exactly`, () => {
-    assert.equal(build(minimum - 1, destination).error, 'DUST_OUTPUT')
-    const result = build(minimum, destination)
-    assert.equal(result.success, true)
-    assert.equal(result.outputs[0].address, destination.address)
-    assert.equal(result.outputs[0].value.toString(), String(minimum))
-  })
+  for (const rate of [1, 100]) {
+    test(`${name}: default floor ${minimum} is independent of fee rate ${rate}`, () => {
+      assert.equal(build(minimum - 1, destination, { rate }).error, 'DUST_OUTPUT')
+      const result = build(minimum, destination, { rate })
+      assertFinal(result)
+      assert.equal(result.outputs[0].address, destination.address)
+      assert.equal(result.outputs[0].value.toString(), String(minimum))
+    })
+  }
 }
 test('the actual address/script wins over a misleading caller type', () => {
   assert.equal(build(293, destinations[0][1], { type: 'LEGACY' }).error, 'DUST_OUTPUT')
   assert.equal(build(545, destinations[1][1], { type: 'BECH32' }).error, 'DUST_OUTPUT')
+})
+test('caller scriptPubKey cannot lower the floor of the serialized address', () => {
+  const output = { address: destinations[1][1].address, scriptPubKey: Buffer.from(destinations[0][1].output), type: 'BECH32', value: new BN(545) }
+  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'DUST_OUTPUT')
+  output.value = new BN(546)
+  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  assertFinal(result)
+  assert.deepEqual(result.outputs[0].scriptPubKey, Buffer.from(destinations[1][1].output))
+})
+test('native raw serialized script wins over contradictory address and metadata', () => {
+  const output = { address: owner, script: Buffer.from(destinations[1][1].output), scriptPubKey: Buffer.from(destinations[0][1].output), value: new BN(545) }
+  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'DUST_OUTPUT')
+  output.value = new BN(546)
+  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  assertFinal(result)
+  assert.deepEqual(result.outputs[0].script, Buffer.from(destinations[1][1].output))
 })
 test('native dust change is folded into fee, without altering the recipient', () => {
   const result = build(99696)
@@ -114,9 +226,9 @@ for (const method of ['assetAllocationSend', 'assetAllocationBurn']) {
       ? lib[method]({ rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
       : lib[method]({ ethaddress: Buffer.alloc(20, 1) }, { rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
     const result = run(candidate)
-    assert.equal(result.success, true)
+    assertFinal(result)
     assert.ok(result.outputs.some(o => o.script && o.script[0] === 0x6a))
-    if (baseline) assert.deepEqual(result, run(baseline))
+    if (baseline) assert.deepEqual(allocationStatements(result), allocationStatements(run(baseline)))
   })
 }
 test('native asset-gas fallback retains allocation values and indexes', () => {
@@ -126,15 +238,14 @@ test('native asset-gas fallback retains allocation values and indexes', () => {
     return lib.createTransaction({ rbf: true }, input, owner, [{ address: owner, value: new BN(50000) }], new BN(10))
   }
   const result = run(candidate)
-  assert.equal(result.success, true)
+  assertFinal(result)
   assert.equal(result.txVersion, 142)
   assert.equal(result.inputs[0].assetInfo.value.toString(), '1000')
   const carriers = result.outputs.filter(o => o.assetInfo)
   assert.equal(carriers.reduce((n, o) => n.add(o.assetInfo.value), new BN(0)).toString(), '1000')
   if (baseline) {
     const old = run(baseline)
-    assert.deepEqual(result.outputs, old.outputs)
-    assert.deepEqual(result.inputs, old.inputs)
+    assert.deepEqual(allocationStatements(result), allocationStatements(old))
   }
   const actualFee = result.inputs.reduce((n, i) => n.add(i.value), new BN(0)).sub(result.outputs.reduce((n, o) => n.add(o.value), new BN(0)))
   assert.equal(result.fee.toString(), actualFee.toString())
@@ -170,7 +281,7 @@ function fixtureInputs (f) {
   }
 }
 for (const fixture of require('./fixtures').filter(f => [138, 139, 140, 141, 142].includes(f.version))) {
-  test(`existing allocation fixture is unchanged: ${fixture.description}`, () => {
+  test(`allocation payload, indexes and economics remain correct: ${fixture.description}`, () => {
     const run = lib => {
       const f = clone(fixture)
       const options = f.txOpts || { rbf: false }
@@ -181,10 +292,107 @@ for (const fixture of require('./fixtures').filter(f => [138, 139, 140, 141, 142
       return lib.assetAllocationBurn(f.assetOpts, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
     }
     const result = run(candidate)
-    assert.equal(result.success, true)
+    if (fixture.version === 138) {
+      const entry = fixture.assetMap.values().next().value
+      const payout = entry.outputs[0]
+      const payoutScript = serializedScript({ address: payout.address || entry.changeAddress || fixture.sysChangeAddress })
+      if (payout.value.lt(coreFloor(payoutScript))) {
+        assert.equal(result.error, 'DUST_OUTPUT', 'a legacy one-satoshi native payout is now correctly refused')
+        return
+      }
+    }
+    const minted = [139, 140].includes(fixture.version)
+      ? units([...fixture.assetMap].flatMap(([assetGuid, entry]) => entry.outputs.map(v => ({ assetGuid, value: v.value }))))
+      : new Map()
+    assertFinal(result, minted)
     assert.equal(result.txVersion, fixture.version)
     assert.equal(result.outputs.length, fixture.expected.numOutputs)
     assert.deepEqual(Buffer.from(result.outputs.find(o => o.script).script), fixture.expected.script)
-    if (baseline) assert.deepEqual(result, run(baseline))
+    assert.deepEqual(canonicalAllocations(allocations(result)), canonicalAllocations(fixture.expected.asset.allocation))
+    if (fixture.version === 139) {
+      const data = result.outputs.find(o => o.script)
+      assert.equal(data.value.toString(), fixture.assetMap.values().next().value.outputs[0].value.toString(), 'native burn principal stays on OP_RETURN')
+    }
+    // Native carrier policy can legitimately change output layout. Preserve
+    // baseline asset statements by actual destination/value, while the current
+    // exact fixture goldens, index bounds and conservation remain mandatory.
+    if (baseline) assert.deepEqual(allocationStatements(result), allocationStatements(run(baseline)))
+  })
+}
+
+for (const rate of [1, 100]) {
+  for (let i = 0; i < destinations.length; i++) {
+    const [name, recipient] = destinations[i]
+    const nativeChange = destinations[(i + 1) % destinations.length][1]
+    const assetChange = destinations[(i + 2) % destinations.length][1]
+    test(`SPT send ${name} recipient and distinct change scripts at fee rate ${rate}`, () => {
+      const map = new Map([['123456', {
+        changeAddress: assetChange.address,
+        changeScript: Buffer.from(destinations[0][1].output),
+        outputs: [{ address: recipient.address, scriptPubKey: Buffer.from(destinations[(i + 3) % destinations.length][1].output), type: 'LEGACY', value: new BN(500) }]
+      }]])
+      const result = candidate.assetAllocationSend({ rbf: true }, assetInputs(), map, nativeChange.address, new BN(rate))
+      assertFinal(result)
+      const allocation = allocations(result)[0]
+      const recipientOutput = result.outputs[allocation.values[0].n]
+      assert.equal(recipientOutput.address, recipient.address)
+      assert.equal(recipientOutput.value.toString(), coreFloor(serializedScript(recipientOutput)).toString(), 'explicit SPT carrier uses the default floor, not transaction fee rate')
+      assert.equal(allocation.values[0].value.toString(), '500')
+      assert.equal(sum(allocation.values, v => v.value).toString(), '1000')
+      const assetChangeOutput = result.outputs.find(o => o.assetInfo && o.address === assetChange.address)
+      const sysChangeOutput = result.outputs.find(o => o.changeIndex !== undefined && !o.assetInfo)
+      assert.ok(assetChangeOutput, 'asset change retains its distinct requested destination')
+      assert.equal(assetChangeOutput.assetInfo.value.toString(), '500')
+      assert.ok(sysChangeOutput, 'native change remains separate when its script differs')
+      assert.equal(sysChangeOutput.address, nativeChange.address, 'native change is never redirected to the asset change address')
+    })
+    test(`native MAX ${name} keeps its destination and actual fee at rate ${rate}`, () => {
+      const result = candidate.createTransaction({ rbf: true }, coins(), nativeChange.address,
+        [{ address: recipient.address, value: new BN(100000), subtractFeeFrom: true }], new BN(rate))
+      assertFinal(result)
+      assert.equal(result.outputs.length, 1)
+      assert.equal(result.outputs[0].address, recipient.address)
+      assert.equal(result.outputs[0].value.add(result.fee).toString(), '100000')
+    })
+    test(`native funded by SPT retains units with ${name} recipient at fee rate ${rate}`, () => {
+      const input = coins()
+      input.utxos[0].assetInfo = { assetGuid: '123456', value: new BN(1000) }
+      const result = candidate.createTransaction({ rbf: true }, input, nativeChange.address,
+        [{ address: recipient.address, type: 'LEGACY', value: new BN(50000) }], new BN(rate))
+      assertFinal(result)
+      assert.equal(result.txVersion, 142)
+      assert.equal(result.outputs[0].address, recipient.address)
+      assert.equal(result.outputs[0].value.toString(), '50000')
+      assert.equal(result.outputs.find(o => o.assetInfo).address, nativeChange.address, 'asset-gas change keeps the requested native change destination')
+    })
+  }
+  for (const ethaddress of [Buffer.alloc(0), Buffer.alloc(20, 1)]) {
+    test(`partial SPT burn ${ethaddress.length ? 141 : 138} at fee rate ${rate} retains the unburned allocation`, () => {
+      const result = candidate.assetAllocationBurn({ ethaddress }, { rbf: true }, assetInputs(), assetMap(), destinations[1][1].address, new BN(rate))
+      assertFinal(result)
+      const allocation = allocations(result)[0]
+      const dataIndex = result.outputs.findIndex(o => o.script)
+      assert.equal(allocation.values.find(v => v.n === dataIndex).value.toString(), '500')
+      assert.equal(sum(allocation.values.filter(v => v.n !== dataIndex), v => v.value).toString(), '500')
+    })
+  }
+  test(`139 preserves even a one-satoshi OP_RETURN principal at fee rate ${rate}`, () => {
+    const map = new Map([['123456', { changeAddress: destinations[1][1].address, outputs: [{ address: destinations[4][1].address, value: new BN(1) }] }]])
+    const result = candidate.syscoinBurnToAssetAllocation({ rbf: true }, coins(), map, destinations[2][1].address, new BN(rate))
+    assertFinal(result, new Map([['123456', new BN(1)]]))
+    assert.equal(result.txVersion, 139)
+    assert.equal(result.outputs.find(o => o.script).value.toString(), '1')
+  })
+  test(`140 proof serialization and mixed-script carrier accounting at fee rate ${rate}`, () => {
+    const fixture = require('./fixtures').find(f => f.version === 140)
+    const map = new Map([['2615707979', { changeAddress: destinations[2][1].address, outputs: [{ address: destinations[4][1].address, value: new BN(500) }] }]])
+    const result = candidate.assetAllocationMint(clone(fixture.assetOpts), { rbf: true }, coins(1000000), map, destinations[1][1].address, new BN(rate))
+    assertFinal(result, new Map([['2615707979', new BN(500)]]))
+    assert.equal(result.txVersion, 140)
+    const data = result.outputs.find(o => o.script)
+    const decoded = bufferUtils.deserializeMintSyscoin(Buffer.from(bitcoin.script.decompile(data.script)[1]))
+    assert.deepEqual(decoded.txparentnodes, fixture.assetOpts.txparentnodes)
+    assert.deepEqual(decoded.receiptparentnodes, fixture.assetOpts.receiptparentnodes)
+    assert.equal(decoded.allocation[0].values[0].value.toString(), '500')
   })
 }

@@ -43,6 +43,27 @@ function allocationsFromResult (result) {
   return bufferUtils.deserializeAssetAllocations(Buffer.from(chunks[1]))
 }
 
+function finalEconomics (t, result) {
+  const allocations = allocationsFromResult(result)
+  const dataIndex = result.outputs.findIndex(output => output.script)
+  const burn = allocations[0].values.find(value => value.n === dataIndex).value
+  const input = result.inputs.reduce((total, row) => total.add(row.value), new BN(0))
+  const output = result.outputs.reduce((total, row) => total.add(row.value), new BN(0))
+  const nativeMint = result.txVersion === 138 ? burn : new BN(0)
+  const actualFee = input.add(nativeMint).sub(output)
+  t.ok(actualFee.gte(new BN(0)), 'native outputs plus fee are fully funded')
+  t.equal(result.fee.toString(), actualFee.toString(), 'reported fee matches final native accounting')
+  for (const row of result.outputs.filter(output => !output.script)) {
+    const script = Buffer.from(bitcoin.address.toOutputScript(row.address, syscointx.utils.syscoinNetworks.testnet))
+    const witness = script.length >= 4 && script.length <= 42 && (script[0] === 0 || (script[0] >= 0x51 && script[0] <= 0x60)) && script[1] + 2 === script.length
+    const floor = new BN((8 + 1 + script.length + (witness ? 67 : 148)) * 3)
+    t.ok(row.value.gte(floor), 'every retained spendable native output meets its actual script floor')
+    t.deepEqual(row.scriptPubKey, script, 'separate script metadata matches the serialized address')
+  }
+  t.equal(result.outputs[dataIndex].value.toString(), '0', 'burn OP_RETURN native value remains zero')
+  t.equal(burn.toString(), SYSX_AMOUNT.toString(), 'exact asset burn amount is unchanged')
+}
+
 tape('exact SYSX burn to NEVM does not leave stale asset output metadata', t => {
   const result = syscointx.assetAllocationBurn(
     { ethaddress: Buffer.alloc(20, 1) },
@@ -54,6 +75,10 @@ tape('exact SYSX burn to NEVM does not leave stale asset output metadata', t => 
   )
 
   t.ok(result.success, 'transaction is created')
+  if (!result.success) {
+    t.end()
+    return
+  }
   t.equal(result.inputs.length, 1, 'uses the mixed SYS/SYSX input')
   t.equal(result.outputs.filter(output => output.assetInfo).length, 0, 'does not retain an uncommitted SYSX output')
   t.ok(result.outputs[0].value.gt(new BN(0)), 'retains the ordinary native-value output')
@@ -65,6 +90,7 @@ tape('exact SYSX burn to NEVM does not leave stale asset output metadata', t => 
   t.equal(allocations[0].values.length, 1, 'serializes only the burn allocation')
   t.equal(allocations[0].values[0].n, result.outputs.findIndex(output => output.script), 'burn allocation points to OP_RETURN')
   t.equal(allocations[0].values[0].value.toString(), SYSX_AMOUNT.toString())
+  finalEconomics(t, result)
   t.end()
 })
 
@@ -79,6 +105,10 @@ tape('exact SYSX burn to Syscoin converts the destination to native SYS metadata
   )
 
   t.ok(result.success, 'transaction is created')
+  if (!result.success) {
+    t.end()
+    return
+  }
   t.equal(result.outputs[0].value.toString(), SYSX_AMOUNT.toString(), 'creates the native SYS mint output')
   t.notOk(result.outputs[0].assetInfo, 'native SYS output has no stale SYSX metadata')
   t.equal(result.outputs[0].address, DESTINATION, 'mints native SYS to the asset-map destination')
@@ -86,5 +116,6 @@ tape('exact SYSX burn to Syscoin converts the destination to native SYS metadata
   const allocations = allocationsFromResult(result)
   t.equal(allocations[0].values.length, 1, 'serializes only the burn allocation')
   t.equal(allocations[0].values[0].n, result.outputs.findIndex(output => output.script), 'burn allocation points to OP_RETURN')
+  finalEconomics(t, result)
   t.end()
 })

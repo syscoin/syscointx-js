@@ -6,7 +6,7 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function nativeOutputScript (output, changeAddress) {
+function outputScript (output, changeAddress) {
   if (output.script) return Buffer.from(output.script)
   const address = output.address || changeAddress
   for (const network of [...Object.values(utils.syscoinNetworks), ...Object.values(utils.bitcoinNetworks)]) {
@@ -14,37 +14,52 @@ function nativeOutputScript (output, changeAddress) {
       return Buffer.from(bitcoin.address.toOutputScript(address, network))
     } catch (_) {}
   }
-  throw new Error('Unsupported native output address or script')
-}
-
-// Core's default dust relay policy (3000 sat/kvB), not the transaction fee rate.
-// Asset carrier construction keeps its existing policy until separately migrated.
-function nativeDustThreshold (script) {
-  if (script[0] === bitcoinops.OP_RETURN || script.length > 10000) return new BN(0)
-  const witness = script.length >= 4 && script.length <= 42 &&
-    (script[0] === 0 || (script[0] >= bitcoinops.OP_1 && script[0] <= bitcoinops.OP_16)) &&
-    script[1] >= 2 && script[1] <= 40 && script[1] + 2 === script.length
-  const compactLength = script.length < 253 ? 1 : 3
-  return new BN((8 + compactLength + script.length + (witness ? 67 : 148)) * 3)
+  throw new Error('Unsupported output address or script')
 }
 
 function dustError (index, value, minimum) {
   return {
     error: 'DUST_OUTPUT',
-    message: 'Native output is below the default relay dust threshold; increase the amount or reduce the fee for MAX',
+    message: 'Output is below the default relay dust threshold; increase the amount or reduce the fee for MAX',
     details: { outputIndex: index, value, minimum }
   }
 }
 
+function selectionOptions (changeAddress) {
+  return { changeOutput: { scriptPubKey: outputScript({}, changeAddress) } }
+}
+
+function outputDustThreshold (output, changeAddress, options) {
+  // Derive metadata from the destination the SDK actually serializes, rather
+  // than trusting a caller's type hint or scriptPubKey annotation.
+  output.scriptPubKey = outputScript(output, changeAddress)
+  return coinSelect.utils.dustThreshold(output, undefined, options)
+}
+
+function prepareAssetMap (assetMap, changeAddress) {
+  return new Map([...assetMap].map(([guid, asset]) => {
+    const destination = asset.changeAddress || changeAddress
+    return [guid, {
+      ...asset,
+      changeScript: outputScript({}, destination),
+      outputs: asset.outputs.map(output => ({
+        ...output,
+        // Asset selection forwards addresses, not raw spending scripts.
+        scriptPubKey: outputScript({ address: output.address }, destination)
+      }))
+    }]
+  }))
+}
+
 function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
   let requested
-  const dustPolicy = output => output.assetInfo
-    ? coinSelect.utils.dustThreshold(output, feeRate)
-    : nativeDustThreshold(nativeOutputScript(output, changeAddress))
+  let options
   try {
+    options = selectionOptions(changeAddress)
+    outputsArr = outputsArr.map(output => ({ ...output, scriptPubKey: outputScript(output, changeAddress) }))
     requested = outputsArr.map((output, index) => {
-      const script = nativeOutputScript(output, changeAddress)
-      const minimum = nativeDustThreshold(script)
+      const script = output.scriptPubKey
+      const minimum = coinSelect.utils.dustThreshold(output, undefined, options)
       if (!output.subtractFeeFrom && output.value.lt(minimum)) throw dustError(index, output.value, minimum)
       return { script, value: output.value.clone(), subtractFeeFrom: output.subtractFeeFrom }
     })
@@ -90,7 +105,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
   }
   let res
   try {
-    res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, txVersion, totalMemoLen, totalBlobLen, dustPolicy)
+    res = coinSelect.coinSelect(utxos.utxos, inputsArr, outputsArr, feeRate, txVersion, totalMemoLen, totalBlobLen, options)
   } catch (error) {
     return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
   }
@@ -105,7 +120,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     const assetAllocations = []
     console.log('createTransaction: inputs or outputs are empty after coinSelect trying to fund with Syscoin Asset inputs...')
     try {
-      res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null, undefined, dustPolicy)
+      res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputsArr, outputsArr, feeRate, utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND, utxos.assets, null, undefined, options)
     } catch (error) {
       return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
     }
@@ -151,7 +166,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     for (let i = 0; i < requested.length; i++) {
       const expected = requested[i]
       const actual = outputs[i]
-      if (!actual || !expected.script.equals(nativeOutputScript(actual, changeAddress)) ||
+      if (!actual || !expected.script.equals(outputScript(actual, changeAddress)) ||
           (expected.subtractFeeFrom ? actual.value.gt(expected.value) : !actual.value.eq(expected.value))) {
         return { error: 'INVALID_OUTPUT', message: 'Coin selection changed an explicit recipient' }
       }
@@ -159,13 +174,11 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     const keep = []
     for (let i = 0; i < outputs.length; i++) {
       const output = outputs[i]
-      if (!output.assetInfo) {
-        const minimum = dustPolicy(output)
-        if (output.value.lt(minimum)) {
-          // Never remove an asset carrier or shift serialized allocation indexes.
-          if (i >= requested.length && output.changeIndex !== undefined && !utils.isAssetAllocationTx(txVersion)) continue
-          return dustError(i, output.value, minimum)
-        }
+      const minimum = outputDustThreshold(output, changeAddress, options)
+      if (output.value.lt(minimum)) {
+        // Never remove an asset carrier or shift serialized allocation indexes.
+        if (i >= requested.length && output.changeIndex !== undefined && !utils.isAssetAllocationTx(txVersion) && !output.assetInfo) continue
+        return dustError(i, output.value, minimum)
       }
       keep.push(output)
     }
@@ -237,6 +250,10 @@ function optimizeOutputs (outputs, assetAllocations) {
     // make the allocation point to the syscoin change output and we can delete the asset output (it sends dust anyway)
     for (let i = 0; i < assetChangeOutputs.length; i++) {
       const assetOutput = assetChangeOutputs[i]
+      // Native and asset change may deliberately have different destinations.
+      // Only share one output when its actual spending script is identical.
+      if (!output.scriptPubKey || !assetOutput.scriptPubKey ||
+          !Buffer.from(output.scriptPubKey).equals(Buffer.from(assetOutput.scriptPubKey))) continue
       // get the allocation by looking up from assetChangeIndex which is indexing into the allocations array for this asset guid
       const allocations = assetAllocations.find(voutAsset => voutAsset.assetGuid === assetOutput.assetInfo.assetGuid)
       const allocation = allocations.values[assetOutput.assetChangeIndex]
@@ -386,7 +403,15 @@ function getAssetsFromTx (tx) {
 }
 
 function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
-  const assetSelectResult = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion)
+  let options
+  let assetSelectResult
+  try {
+    options = selectionOptions(sysChangeAddress)
+    assetMap = prepareAssetMap(assetMap, sysChangeAddress)
+    assetSelectResult = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, options)
+  } catch (error) {
+    return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
   let { inputs, outputs, assetAllocations } = assetSelectResult
 
   // .inputs and .outputs will be undefined if no solution was found
@@ -452,7 +477,12 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
     value: dataAmount
   }
   outputs.push(dataOutput)
-  const res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets, assetMap)
+  let res
+  try {
+    res = coinSelect.coinSelectAssetGas(assetAllocations, utxos.utxos, inputs, outputs, feeRate, txVersion, utxos.assets, assetMap, undefined, options)
+  } catch (error) {
+    return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
   if (!res.inputs || !res.outputs) {
     console.log('createAssetTransaction: inputs or outputs are empty after coinSelectAssetGas')
     // Return the complete error object from coinselect
@@ -524,6 +554,23 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
       output.address = sysChangeAddress
     }
   })
+
+  // Asset selection and output merging both affect native carrier destinations.
+  // Validate the final scripts with the same shared policy, without deleting or
+  // moving allocations or altering the committed asset values.
+  try {
+    for (let i = 0; i < outputs.length; i++) {
+      const minimum = outputDustThreshold(outputs[i], sysChangeAddress, options)
+      if (outputs[i].value.lt(minimum)) return dustError(i, outputs[i].value, minimum)
+    }
+  } catch (error) {
+    return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
+  }
+
+  res.fee = ext.sub(coinSelect.utils.sumOrNaN(inputs), coinSelect.utils.sumOrNaN(outputs))
+  if (txVersion === utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_SYSCOIN) {
+    res.fee = ext.add(res.fee, burnAllocationValue)
+  }
 
   // Get the actual fee and size
   const bytesAccum = coinSelect.utils.transactionBytes(inputs, outputs)
