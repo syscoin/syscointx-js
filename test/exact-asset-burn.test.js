@@ -71,7 +71,8 @@ tape('exact SYSX burn to NEVM does not leave stale asset output metadata', t => 
     exactSysxUtxos(),
     exactSysxAssetMap(),
     ADDRESS,
-    new BN(10)
+    new BN(10),
+    syscointx.utils.syscoinNetworks.testnet
   )
 
   t.ok(result.success, 'transaction is created')
@@ -101,7 +102,8 @@ tape('exact SYSX burn to Syscoin converts the destination to native SYS metadata
     exactSysxUtxos(),
     exactSysxAssetMap(),
     ADDRESS,
-    new BN(10)
+    new BN(10),
+    syscointx.utils.syscoinNetworks.testnet
   )
 
   t.ok(result.success, 'transaction is created')

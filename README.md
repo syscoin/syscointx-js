@@ -147,7 +147,8 @@ const multipleOutputs = [
 const changeAddress = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
 const feeRate = new BN(10)
 
-const result = syscointx.createTransaction(txOpts, utxos, changeAddress, outputsArr, feeRate)
+const network = syscointx.utils.bitcoinNetworks.mainnet
+const result = syscointx.createTransaction(txOpts, utxos, changeAddress, outputsArr, feeRate, network)
 // Fee is subtracted sequentially from outputs with subtractFeeFrom
 ```
 
