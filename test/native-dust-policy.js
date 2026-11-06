@@ -10,6 +10,11 @@ const baseline = process.env.DUST_BASELINE_SOURCE && require(path.resolve(proces
 const candidate = process.env.DUST_TEST_BASELINE ? baseline : require('../')
 const key = Buffer.from('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'hex')
 const network = candidate.utils.syscoinNetworks.testnet
+// Retain the optional comparison with a package built before this API changed.
+const callBuilder = (lib, method, network, ...args) => lib === baseline
+  ? lib[method](...args)
+  : lib[method](...args, network)
+const buildNative = (lib, ...args) => callBuilder(lib, 'createTransaction', network, ...args)
 const owner = bitcoin.payments.p2wpkh({ pubkey: key, network }).address
 const destinations = [
   ['P2WPKH', bitcoin.payments.p2wpkh({ pubkey: key, network }), 294],
@@ -22,7 +27,7 @@ function coins (value = 100000) {
   return { assets: new Map(), utxos: [{ type: 'BECH32', address: owner, txId: '01'.repeat(32), vout: 0, value: new BN(value) }] }
 }
 function build (amount, destination = destinations[0][1], options = {}) {
-  return candidate.createTransaction(options.tx || { rbf: true }, coins(options.input), owner,
+  return buildNative(candidate, options.tx || { rbf: true }, coins(options.input), owner,
     [{ address: destination.address, value: new BN(amount), ...(options.max ? { subtractFeeFrom: true } : {}), ...(options.type ? { type: options.type } : {}) }], new BN(options.rate || 1))
 }
 // Independent default-Core oracle applied to the script the SDK serializes,
@@ -135,9 +140,9 @@ test('the actual address/script wins over a misleading caller type', () => {
 })
 test('caller scriptPubKey cannot lower the floor of the serialized address', () => {
   const output = { address: destinations[1][1].address, scriptPubKey: Buffer.from(destinations[0][1].output), type: 'BECH32', value: new BN(545) }
-  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'DUST_OUTPUT')
+  assert.equal(buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1)).error, 'DUST_OUTPUT')
   output.value = new BN(546)
-  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  const result = buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1))
   assertFinal(result)
   assert.deepEqual(result.outputs[0].scriptPubKey, Buffer.from(destinations[1][1].output))
 })
@@ -146,13 +151,13 @@ test('conflicting native address and raw spending script are rejected', () => {
   const psbt = new bitcoin.Psbt({ network })
   psbt.addOutput({ address: output.address, script: output.script, value: BigInt(300) })
   assert.deepEqual(Buffer.from(psbt.txOutputs[0].script), Buffer.from(destinations[1][1].output), 'a consumer passing both fields can serialize the address instead')
-  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
+  assert.equal(buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
   output.value = new BN(546)
-  assert.equal(candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
+  assert.equal(buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1)).error, 'INVALID_OUTPUT_SCRIPT')
 })
 test('script-only native output does not acquire a conflicting change address', () => {
   const output = { script: Buffer.from(destinations[1][1].output), value: new BN(546) }
-  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  const result = buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1))
   assertFinal(result)
   assert.equal(result.outputs[0].address, undefined)
   assert.deepEqual(result.outputs[0].script, Buffer.from(destinations[1][1].output))
@@ -162,7 +167,7 @@ test('script-only native output does not acquire a conflicting change address', 
 })
 test('matching native address and raw spending script remain consistent', () => {
   const output = { address: owner, script: Buffer.from(destinations[0][1].output), value: new BN(294) }
-  const result = candidate.createTransaction({ rbf: true }, coins(), owner, [output], new BN(1))
+  const result = buildNative(candidate, { rbf: true }, coins(), owner, [output], new BN(1))
   assertFinal(result)
   assert.equal(result.outputs[0].address, owner)
   const psbt = new bitcoin.Psbt({ network })
@@ -198,14 +203,14 @@ test('relay dust does not scale with the transaction fee rate', () => {
 test('a MAX dust failure never consumes additional asset carrier inputs', () => {
   const input = coins(406)
   input.utxos.push({ type: 'BECH32', address: owner, txId: '02'.repeat(32), vout: 0, value: new BN(100000), assetInfo: { assetGuid: '123456', value: new BN(1000) } })
-  const result = candidate.createTransaction({ rbf: true }, input, owner,
+  const result = buildNative(candidate, { rbf: true }, input, owner,
     [{ address: owner, value: new BN(406), subtractFeeFrom: true }], new BN(1))
   assert.equal(result.error, 'SUBTRACT_FEE_FAILED')
   assert.equal(result.inputs, undefined)
   assert.equal(result.outputs, undefined)
 })
 test('multiple MAX recipients keep duplicate identity, order and count', () => {
-  const result = candidate.createTransaction({ rbf: true }, coins(1000), owner,
+  const result = buildNative(candidate, { rbf: true }, coins(1000), owner,
     [{ address: owner, value: new BN(500), subtractFeeFrom: true }, { address: owner, value: new BN(500), subtractFeeFrom: true }], new BN(1))
   assert.equal(result.success, true)
   assert.equal(result.outputs.length, 2)
@@ -233,7 +238,7 @@ test('an unknown output address fails closed', () => {
   assert.equal(build(50000, { address: 'not-an-address' }).error, 'INVALID_OUTPUT_SCRIPT')
 })
 test('an invalid change address returns a structured failure', () => {
-  const result = candidate.createTransaction({ rbf: true }, coins(), 'invalid-change', [{ address: owner, value: new BN(50000) }], new BN(1))
+  const result = buildNative(candidate, { rbf: true }, coins(), 'invalid-change', [{ address: owner, value: new BN(50000) }], new BN(1))
   assert.equal(result.error, 'INVALID_OUTPUT_SCRIPT')
 })
 function assetInputs () {
@@ -245,8 +250,8 @@ function assetMap () { return new Map([['123456', { changeAddress: owner, output
 for (const method of ['assetAllocationSend', 'assetAllocationBurn']) {
   test(`${method} keeps the existing asset/data semantics`, () => {
     const run = lib => method === 'assetAllocationSend'
-      ? lib[method]({ rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
-      : lib[method]({ ethaddress: Buffer.alloc(20, 1) }, { rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
+      ? callBuilder(lib, method, network, { rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
+      : callBuilder(lib, method, network, { ethaddress: Buffer.alloc(20, 1) }, { rbf: true }, assetInputs(), assetMap(), owner, new BN(10))
     const result = run(candidate)
     assertFinal(result)
     assert.ok(result.outputs.some(o => o.script && o.script[0] === 0x6a))
@@ -257,7 +262,7 @@ test('native asset-gas fallback retains allocation values and indexes', () => {
   const run = lib => {
     const input = coins()
     input.utxos[0].assetInfo = { assetGuid: '123456', value: new BN(1000) }
-    return lib.createTransaction({ rbf: true }, input, owner, [{ address: owner, value: new BN(50000) }], new BN(10))
+    return buildNative(lib, { rbf: true }, input, owner, [{ address: owner, value: new BN(50000) }], new BN(10))
   }
   const result = run(candidate)
   assertFinal(result)
@@ -308,10 +313,11 @@ for (const fixture of require('./fixtures').filter(f => [138, 139, 140, 141, 142
       const f = clone(fixture)
       const options = f.txOpts || { rbf: false }
       const inputs = fixtureInputs(f)
-      if (f.version === 142) return lib.assetAllocationSend(options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
-      if (f.version === 139) return lib.syscoinBurnToAssetAllocation(options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
-      if (f.version === 140) return lib.assetAllocationMint(f.assetOpts, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
-      return lib.assetAllocationBurn(f.assetOpts, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
+      const outputNetwork = f.sysChangeAddress.startsWith('tsys') ? network : candidate.utils.bitcoinNetworks.mainnet
+      if (f.version === 142) return callBuilder(lib, 'assetAllocationSend', outputNetwork, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
+      if (f.version === 139) return callBuilder(lib, 'syscoinBurnToAssetAllocation', outputNetwork, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
+      if (f.version === 140) return callBuilder(lib, 'assetAllocationMint', outputNetwork, f.assetOpts, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
+      return callBuilder(lib, 'assetAllocationBurn', outputNetwork, f.assetOpts, options, inputs, f.assetMap, f.sysChangeAddress, f.feeRate)
     }
     const result = run(candidate)
     if (fixture.version === 138) {
@@ -353,7 +359,7 @@ for (const rate of [1, 100]) {
         changeScript: Buffer.from(destinations[0][1].output),
         outputs: [{ address: recipient.address, scriptPubKey: Buffer.from(destinations[(i + 3) % destinations.length][1].output), type: 'LEGACY', value: new BN(500) }]
       }]])
-      const result = candidate.assetAllocationSend({ rbf: true }, assetInputs(), map, nativeChange.address, new BN(rate))
+      const result = candidate.assetAllocationSend({ rbf: true }, assetInputs(), map, nativeChange.address, new BN(rate), network)
       assertFinal(result)
       const allocation = allocations(result)[0]
       const recipientOutput = result.outputs[allocation.values[0].n]
@@ -369,7 +375,7 @@ for (const rate of [1, 100]) {
       assert.equal(sysChangeOutput.address, nativeChange.address, 'native change is never redirected to the asset change address')
     })
     test(`native MAX ${name} keeps its destination and actual fee at rate ${rate}`, () => {
-      const result = candidate.createTransaction({ rbf: true }, coins(), nativeChange.address,
+      const result = buildNative(candidate, { rbf: true }, coins(), nativeChange.address,
         [{ address: recipient.address, value: new BN(100000), subtractFeeFrom: true }], new BN(rate))
       assertFinal(result)
       assert.equal(result.outputs.length, 1)
@@ -379,7 +385,7 @@ for (const rate of [1, 100]) {
     test(`native funded by SPT retains units with ${name} recipient at fee rate ${rate}`, () => {
       const input = coins()
       input.utxos[0].assetInfo = { assetGuid: '123456', value: new BN(1000) }
-      const result = candidate.createTransaction({ rbf: true }, input, nativeChange.address,
+      const result = buildNative(candidate, { rbf: true }, input, nativeChange.address,
         [{ address: recipient.address, type: 'LEGACY', value: new BN(50000) }], new BN(rate))
       assertFinal(result)
       assert.equal(result.txVersion, 142)
@@ -390,7 +396,7 @@ for (const rate of [1, 100]) {
   }
   for (const ethaddress of [Buffer.alloc(0), Buffer.alloc(20, 1)]) {
     test(`partial SPT burn ${ethaddress.length ? 141 : 138} at fee rate ${rate} retains the unburned allocation`, () => {
-      const result = candidate.assetAllocationBurn({ ethaddress }, { rbf: true }, assetInputs(), assetMap(), destinations[1][1].address, new BN(rate))
+      const result = candidate.assetAllocationBurn({ ethaddress }, { rbf: true }, assetInputs(), assetMap(), destinations[1][1].address, new BN(rate), network)
       assertFinal(result)
       const allocation = allocations(result)[0]
       const dataIndex = result.outputs.findIndex(o => o.script)
@@ -400,7 +406,7 @@ for (const rate of [1, 100]) {
   }
   test(`139 preserves even a one-satoshi OP_RETURN principal at fee rate ${rate}`, () => {
     const map = new Map([['123456', { changeAddress: destinations[1][1].address, outputs: [{ address: destinations[4][1].address, value: new BN(1) }] }]])
-    const result = candidate.syscoinBurnToAssetAllocation({ rbf: true }, coins(), map, destinations[2][1].address, new BN(rate))
+    const result = candidate.syscoinBurnToAssetAllocation({ rbf: true }, coins(), map, destinations[2][1].address, new BN(rate), network)
     assertFinal(result, new Map([['123456', new BN(1)]]))
     assert.equal(result.txVersion, 139)
     assert.equal(result.outputs.find(o => o.script).value.toString(), '1')
@@ -408,7 +414,7 @@ for (const rate of [1, 100]) {
   test(`140 proof serialization and mixed-script carrier accounting at fee rate ${rate}`, () => {
     const fixture = require('./fixtures').find(f => f.version === 140)
     const map = new Map([['2615707979', { changeAddress: destinations[2][1].address, outputs: [{ address: destinations[4][1].address, value: new BN(500) }] }]])
-    const result = candidate.assetAllocationMint(clone(fixture.assetOpts), { rbf: true }, coins(1000000), map, destinations[1][1].address, new BN(rate))
+    const result = candidate.assetAllocationMint(clone(fixture.assetOpts), { rbf: true }, coins(1000000), map, destinations[1][1].address, new BN(rate), network)
     assertFinal(result, new Map([['2615707979', new BN(500)]]))
     assert.equal(result.txVersion, 140)
     const data = result.outputs.find(o => o.script)

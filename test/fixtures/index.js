@@ -429,7 +429,7 @@ module.exports = [
     assetOpts: { ethaddress: Buffer.from('', 'hex') },
     sysChangeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
     assetMap: new Map([
-      ['123456', { changeAddress: 'tsys1qayjjfphgsf960jlu0amqvnl5kudv53wapvng0p', outputs: [{ value: new BN(300000000) }] }]
+      ['123456', { changeAddress: 'bc1qayjjfphgsf960jlu0amqvnl5kudv53wa7wpmre', outputs: [{ value: new BN(300000000) }] }]
     ]),
     expected: {
       rbf: true,
@@ -592,7 +592,7 @@ module.exports = [
     },
     sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
     assetMap: new Map([
-      ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+      ['2615707979', { changeAddress: 'tsys1qar0srrr7xfkvy5l643lydnw9re59gtzz3txgpc', outputs: [{ value: new BN(10000000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
     ]),
     expected: {
       rbf: true,
@@ -676,7 +676,7 @@ module.exports = [
     },
     sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
     assetMap: new Map([
-      ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(900000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+      ['2615707979', { changeAddress: 'tsys1qar0srrr7xfkvy5l643lydnw9re59gtzz3txgpc', outputs: [{ value: new BN(900000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
     ]),
     expected: {
       rbf: true,
@@ -719,7 +719,7 @@ module.exports = [
     },
     sysChangeAddress: 'tsys1qp7qn0t0t6ymwhdwne9uku7v3dhw07a7tra8hzl',
     assetMap: new Map([
-      ['2615707979', { changeAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', outputs: [{ value: new BN(900000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
+      ['2615707979', { changeAddress: 'tsys1qar0srrr7xfkvy5l643lydnw9re59gtzz3txgpc', outputs: [{ value: new BN(900000000), address: 'tsys1qdflre2yd37qtpqe2ykuhwandlhq04r2td2t9ae' }] }]
     ]),
     expected: {
       rbf: true,

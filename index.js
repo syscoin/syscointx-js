@@ -6,27 +6,25 @@ const bitcoin = require('bitcoinjs-lib')
 const coinSelect = require('coinselectsyscoin')
 const bitcoinops = require('bitcoin-ops')
 
-function addressScript (address) {
-  for (const network of [...Object.values(utils.syscoinNetworks), ...Object.values(utils.bitcoinNetworks)]) {
-    try {
-      return Buffer.from(bitcoin.address.toOutputScript(address, network))
-    } catch (_) {}
+function outputAddressEncoder (network) {
+  if (!network || typeof network.bech32 !== 'string' || !Number.isInteger(network.pubKeyHash) || !Number.isInteger(network.scriptHash)) {
+    throw new Error('A transaction output network is required')
   }
-  throw new Error('Unsupported output address or script')
+  return (address) => Buffer.from(bitcoin.address.toOutputScript(address, network))
 }
 
-function outputScript (output, changeAddress) {
+function outputScript (output, changeAddress, encodeAddress) {
   if (output.script) {
     const script = Buffer.from(output.script)
     // OP_RETURN outputs conventionally carry address metadata, not a second
     // spending destination. Spendable scripts must agree with any address.
     if (script[0] !== bitcoinops.OP_RETURN && output.address &&
-        !script.equals(addressScript(output.address))) {
+        !script.equals(encodeAddress(output.address))) {
       throw new Error('Output address does not match its spending script')
     }
     return script
   }
-  return addressScript(output.address || changeAddress)
+  return encodeAddress(output.address || changeAddress)
 }
 
 function dustError (index, value, minimum) {
@@ -37,38 +35,40 @@ function dustError (index, value, minimum) {
   }
 }
 
-function selectionOptions (changeAddress) {
-  return { changeOutput: { scriptPubKey: outputScript({}, changeAddress) } }
+function selectionOptions (changeAddress, encodeAddress) {
+  return { changeOutput: { scriptPubKey: outputScript({}, changeAddress, encodeAddress) } }
 }
 
-function outputDustThreshold (output, changeAddress, options) {
+function outputDustThreshold (output, changeAddress, options, encodeAddress) {
   // Derive metadata from the destination the SDK actually serializes, rather
   // than trusting a caller's type hint or scriptPubKey annotation.
-  output.scriptPubKey = outputScript(output, changeAddress)
+  output.scriptPubKey = outputScript(output, changeAddress, encodeAddress)
   return coinSelect.utils.dustThreshold(output, undefined, options)
 }
 
-function prepareAssetMap (assetMap, changeAddress) {
+function prepareAssetMap (assetMap, changeAddress, encodeAddress) {
   return new Map([...assetMap].map(([guid, asset]) => {
     const destination = asset.changeAddress || changeAddress
     return [guid, {
       ...asset,
-      changeScript: outputScript({}, destination),
+      changeScript: outputScript({}, destination, encodeAddress),
       outputs: asset.outputs.map(output => ({
         ...output,
         // Asset selection forwards addresses, not raw spending scripts.
-        scriptPubKey: outputScript({ address: output.address }, destination)
+        scriptPubKey: outputScript({ address: output.address }, destination, encodeAddress)
       }))
     }]
   }))
 }
 
-function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, inputsArr) {
+function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, network, inputsArr) {
+  let encodeAddress
   let requested
   let options
   try {
-    options = selectionOptions(changeAddress)
-    outputsArr = outputsArr.map(output => ({ ...output, scriptPubKey: outputScript(output, changeAddress) }))
+    encodeAddress = outputAddressEncoder(network)
+    options = selectionOptions(changeAddress, encodeAddress)
+    outputsArr = outputsArr.map(output => ({ ...output, scriptPubKey: outputScript(output, changeAddress, encodeAddress) }))
     requested = outputsArr.map((output, index) => {
       const script = output.scriptPubKey
       const minimum = coinSelect.utils.dustThreshold(output, undefined, options)
@@ -178,7 +178,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     for (let i = 0; i < requested.length; i++) {
       const expected = requested[i]
       const actual = outputs[i]
-      if (!actual || !expected.script.equals(outputScript(actual, changeAddress)) ||
+      if (!actual || !expected.script.equals(outputScript(actual, changeAddress, encodeAddress)) ||
           (expected.subtractFeeFrom ? actual.value.gt(expected.value) : !actual.value.eq(expected.value))) {
         return { error: 'INVALID_OUTPUT', message: 'Coin selection changed an explicit recipient' }
       }
@@ -186,7 +186,7 @@ function createTransaction (txOpts, utxos, changeAddress, outputsArr, feeRate, i
     const keep = []
     for (let i = 0; i < outputs.length; i++) {
       const output = outputs[i]
-      const minimum = outputDustThreshold(output, changeAddress, options)
+      const minimum = outputDustThreshold(output, changeAddress, options, encodeAddress)
       if (output.value.lt(minimum)) {
         // Never remove an asset carrier or shift serialized allocation indexes.
         if (i >= requested.length && output.changeIndex !== undefined && !utils.isAssetAllocationTx(txVersion) && !output.assetInfo) continue
@@ -414,12 +414,14 @@ function getAssetsFromTx (tx) {
   return assets
 }
 
-function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate) {
+function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate, network) {
+  let encodeAddress
   let options
   let assetSelectResult
   try {
-    options = selectionOptions(sysChangeAddress)
-    assetMap = prepareAssetMap(assetMap, sysChangeAddress)
+    encodeAddress = outputAddressEncoder(network)
+    options = selectionOptions(sysChangeAddress, encodeAddress)
+    assetMap = prepareAssetMap(assetMap, sysChangeAddress, encodeAddress)
     assetSelectResult = coinSelect.coinSelectAsset(utxos.utxos, assetMap, feeRate, txVersion, options)
   } catch (error) {
     return { error: 'INVALID_OUTPUT_SCRIPT', message: error.message }
@@ -572,7 +574,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   // moving allocations or altering the committed asset values.
   try {
     for (let i = 0; i < outputs.length; i++) {
-      const minimum = outputDustThreshold(outputs[i], sysChangeAddress, options)
+      const minimum = outputDustThreshold(outputs[i], sysChangeAddress, options, encodeAddress)
       if (outputs[i].value.lt(minimum)) return dustError(i, outputs[i].value, minimum)
     }
   } catch (error) {
@@ -598,7 +600,7 @@ function createAssetTransaction (txVersion, txOpts, utxos, dataBuffer, dataAmoun
   }
 }
 
-function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
+function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_SEND
   const dataAmount = ext.BN_ZERO
   let dataBuffer = null
@@ -627,10 +629,10 @@ function assetAllocationSend (txOpts, utxos, assetMap, sysChangeAddress, feeRate
     }
     dataBuffer = Buffer.concat([txOpts.memoHeader, txOpts.memo])
   }
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate, network)
 }
 
-function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
+function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   let txVersion = 0
   if (assetOpts.ethaddress.length > 0) {
     txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_BURN_TO_ETHEREUM
@@ -639,10 +641,10 @@ function assetAllocationBurn (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
   }
   const dataAmount = ext.BN_ZERO
   const dataBuffer = syscoinBufferUtils.serializeAllocationBurn(assetOpts)
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate, network)
 }
 
-function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
+function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   const txVersion = utils.SYSCOIN_TX_VERSION_ALLOCATION_MINT
   const dataAmount = ext.BN_ZERO
   if (assetOpts.txparentnodes.length > utils.USHRT_MAX()) {
@@ -678,10 +680,10 @@ function assetAllocationMint (assetOpts, txOpts, utxos, assetMap, sysChangeAddre
     }
   }
   const dataBuffer = syscoinBufferUtils.serializeMintSyscoin(assetOpts)
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate, network)
 }
 
-function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, feeRate) {
+function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress, feeRate, network) {
   const txVersion = utils.SYSCOIN_TX_VERSION_SYSCOIN_BURN_TO_ALLOCATION
   const dataBuffer = null
   let dataAmount = ext.BN_ZERO
@@ -689,9 +691,9 @@ function syscoinBurnToAssetAllocation (txOpts, utxos, assetMap, sysChangeAddress
   if (valueAssetObj.outputs.length > 0) {
     dataAmount = valueAssetObj.outputs[0].value
   }
-  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate)
+  return createAssetTransaction(txVersion, txOpts, utxos, dataBuffer, dataAmount, assetMap, sysChangeAddress, feeRate, network)
 }
-function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
+function createPoDA (txOpts, utxos, sysChangeAddress, feeRate, network) {
   if (!txOpts.blobData || !txOpts.blobHash) {
     console.log('Could not find blob txOpt fields, cannot create PoDA transaction')
     return {
@@ -699,7 +701,7 @@ function createPoDA (txOpts, utxos, sysChangeAddress, feeRate) {
       message: 'Could not find blob txOpt fields, cannot create PoDA transaction'
     }
   }
-  return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate)
+  return createTransaction(txOpts, utxos, sysChangeAddress, [], feeRate, network)
 }
 
 function decodeRawTransaction (tx, network) {
